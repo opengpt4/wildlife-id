@@ -54,11 +54,29 @@ jobs:
             --calibration ml/export/calibration_manifest.csv \
             --out-dir data/eval/artifacts
 
+      - name: Upload artifacts
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: bioclip-vitb16-224-tflite
+          if-no-files-found: warn
+          path: |
+            data/eval/artifacts/*.tflite
+            data/eval/artifacts/tflite_manifest.json
+            data/eval/artifacts/prompts.json
+            data/eval/artifacts/export_manifest.json
+            data/eval/artifacts/text_embeddings_200.npz
+
+      # Runs after the upload on purpose: a failing smoke test must still leave the
+      # artifacts behind, because the next debugging step happens against the real
+      # file rather than another 25-minute rebuild.
       - name: Smoke-test the artifacts
         run: |
           python - <<'PY'
-          import json, os, numpy as np, tensorflow as tf
+          import json, os, sys, numpy as np, tensorflow as tf
           m = json.load(open("data/eval/artifacts/tflite_manifest.json"))
+          rng = np.random.default_rng(0)
+          failed = []
           for key in ("fp32", "int8"):
               p = m[key]["path"]
               size_mb = os.path.getsize(p) / 1e6
@@ -68,27 +86,36 @@ jobs:
               out = interp.get_output_details()[0]
               print(key, "size", round(size_mb, 1), "MB",
                     "in", inp["shape"], inp["dtype"].__name__,
-                    "out", out["shape"], out["dtype"].__name__)
+                    "out", out["shape"], out["dtype"].__name__, flush=True)
               assert out["shape"][-1] == 512, "embedding width must be 512"
-              x = np.zeros(inp["shape"], dtype=inp["dtype"])
-              if inp["dtype"] != np.float32:
-                  x[...] = int(inp["quantization"][1])  # zero point
-              interp.set_tensor(inp["index"], x)
-              interp.invoke()
-              y = interp.get_tensor(out["index"])
-              assert np.isfinite(y.astype(np.float32)).all(), "non-finite output"
-          assert os.path.getsize(m["int8"]["path"]) / 1e6 <= 120, "G7 violated"
-          print("smoke test OK")
-          PY
 
-      - name: Upload artifacts
-        uses: actions/upload-artifact@v4
-        with:
-          name: bioclip-vitb16-224-tflite
-          path: |
-            data/eval/artifacts/*.tflite
-            data/eval/artifacts/tflite_manifest.json
-            data/eval/artifacts/prompts.json
-            data/eval/artifacts/export_manifest.json
-            data/eval/artifacts/text_embeddings_200.npz
-          retention-days: 90
+              def run(x, label):
+                  interp.set_tensor(inp["index"], x)
+                  interp.invoke()
+                  y = interp.get_tensor(out["index"])
+                  ok = np.isfinite(y.astype(np.float32)).all()
+                  print(f"  {key}/{label}: finite={ok} out={y.ravel()[:3]}", flush=True)
+                  return ok
+
+              # All-zero pixels are a legal photo (a black frame) and they are what
+              # caught the previous 0/0 erf; a randomised frame is the happy path.
+              if inp["dtype"] == np.float32:
+                  zero = np.zeros(inp["shape"], dtype=np.float32)
+                  rnd = rng.standard_normal(inp["shape"]).astype(np.float32)
+              else:
+                  qmin, qmax = -128, 127
+                  zp = int(inp["quantization"][1])
+                  zero = np.full(inp["shape"], zp, dtype=inp["dtype"])
+                  rnd = rng.integers(qmin, qmax, size=inp["shape"]).astype(inp["dtype"])
+              for x, label in ((zero, "zeros"), (rnd, "random")):
+                  try:
+                      if not run(x, label):
+                          failed.append(f"{key}/{label}: non-finite output")
+                  except Exception as e:  # noqa: BLE001
+                      failed.append(f"{key}/{label}: {type(e).__name__}: {e}")
+          assert os.path.getsize(m["int8"]["path"]) / 1e6 <= 120, "G7 violated"
+          if failed:
+              print("FAILED:", *failed, sep="\n  ", flush=True)
+              sys.exit(1)
+          print("smoke test OK", flush=True)
+          PY
