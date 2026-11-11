@@ -58,24 +58,22 @@ class VisionTower(torch.nn.Module):
 
 def main() -> int:
     # ---- TFLite-safe GELU -----------------------------------------------------
-    # TFLite has no ERF kernel, so exact GELU (Div -> Erf -> Add -> Mul -> Mul)
-    # cannot convert. onnx2tf's pseudo-erf workaround computes sign(x) as
-    # x / (|x| + 1e-11); under int8 quantisation that denominator rounds to zero
-    # for a zero input and the DIV kernel aborts ("data[i] != 0 was not true").
-    # Applying the approximation here instead, with torch.sign in place of x/|x|
-    # (ONNX Sign -> tfl.sign), keeps every op one TFLite actually has.
-    # Formula: Abramowitz & Stegun 7.1.26, max abs error ~1.5e-7 — three orders of
-    # magnitude below int8 quantisation noise, so it cannot move a G4 number.
-    def _erf_as(x: torch.Tensor) -> torch.Tensor:
-        a1, a2, a3, a4, a5, p = (
-            0.254829592, -0.284496736, 1.421413741, -1.453152027, 1.061405429, 0.3275911)
-        ax = x.abs()
-        t = 1.0 / (1.0 + p * ax)
-        poly = ((((a5 * t + a4) * t + a3) * t + a2) * t + a1) * t
-        return torch.sign(x) * (1.0 - poly * torch.exp(-ax * ax))
-
+    # TFLite has no ERF kernel, and the graph PyTorch exports for exact GELU is
+    # Div -> Erf -> Add -> Mul -> Mul, which fails conversion outright ("neither a
+    # custom op nor a flex op"). Two workarounds were tried and both are wrong:
+    #   * onnx2tf's pseudo-erf computes sign(x) = x/(|x|+1e-11) -> 0/0 at x=0.
+    #   * our own A&S 7.1.26 erf with torch.sign still needs t = 1/(1+p|x|), and
+    #     TFLite's int8 DIV kernel aborts whenever the divisor's raw quantised
+    #     value is 0 — which asymmetric quantisation makes routine (measured: 12
+    #     DIV ops, zero_point -128, all crashing on the int8 artifact).
+    # So: no division at all. The standard tanh GELU approximation uses only
+    # multiply/add/tanh, every one of which has a native int8 kernel. Its error
+    # against exact GELU is ~1e-3, i.e. a few percent of one int8 quantisation
+    # step — it cannot move a G4 number by a point, and it is the same
+    # approximation PyTorch/TensorFlow use under approximate='tanh'.
     def _gelu_tflite(x: torch.Tensor, approximate: str = "none") -> torch.Tensor:
-        return 0.5 * x * (1.0 + _erf_as(x * 0.7071067811865476))
+        inner = 0.7978845608028654 * (x + 0.044715 * x.pow(3))  # sqrt(2/pi)
+        return 0.5 * x * (1.0 + torch.tanh(inner))
 
     torch.nn.functional.gelu = _gelu_tflite
 

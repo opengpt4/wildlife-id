@@ -147,8 +147,8 @@ def main() -> int:
         "prompt_list_sha256": prompt_hash,
         "calibration_images": len(cal_arrays),
         "quantisation": "full-integer int8 (weights + activations + input), calibrated",
-        "gelu": "erf via Abramowitz & Stegun 7.1.26 with sign(), applied in the "
-                "exporter so the graph contains no tf.Erf (max abs err ~1.4e-7)",
+        "gelu": "tanh approximation of GELU, applied in the exporter: the graph "
+                "contains no tf.Erf and no DIV, both of which break int8 conversion",
         "toolchain": {
             "tensorflow": tf.__version__,
             "onnx2tf": getattr(onnx2tf, "__version__", "unknown"),
