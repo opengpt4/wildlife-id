@@ -57,6 +57,28 @@ class VisionTower(torch.nn.Module):
 
 
 def main() -> int:
+    # ---- TFLite-safe GELU -----------------------------------------------------
+    # TFLite has no ERF kernel, so exact GELU (Div -> Erf -> Add -> Mul -> Mul)
+    # cannot convert. onnx2tf's pseudo-erf workaround computes sign(x) as
+    # x / (|x| + 1e-11); under int8 quantisation that denominator rounds to zero
+    # for a zero input and the DIV kernel aborts ("data[i] != 0 was not true").
+    # Applying the approximation here instead, with torch.sign in place of x/|x|
+    # (ONNX Sign -> tfl.sign), keeps every op one TFLite actually has.
+    # Formula: Abramowitz & Stegun 7.1.26, max abs error ~1.5e-7 — three orders of
+    # magnitude below int8 quantisation noise, so it cannot move a G4 number.
+    def _erf_as(x: torch.Tensor) -> torch.Tensor:
+        a1, a2, a3, a4, a5, p = (
+            0.254829592, -0.284496736, 1.421413741, -1.453152027, 1.061405429, 0.3275911)
+        ax = x.abs()
+        t = 1.0 / (1.0 + p * ax)
+        poly = ((((a5 * t + a4) * t + a3) * t + a2) * t + a1) * t
+        return torch.sign(x) * (1.0 - poly * torch.exp(-ax * ax))
+
+    def _gelu_tflite(x: torch.Tensor, approximate: str = "none") -> torch.Tensor:
+        return 0.5 * x * (1.0 + _erf_as(x * 0.7071067811865476))
+
+    torch.nn.functional.gelu = _gelu_tflite
+
     ap = argparse.ArgumentParser()
     ap.add_argument("--resolution", type=int, default=224)
     ap.add_argument("--candidates", default="data/species/hk_candidates_200.csv")
