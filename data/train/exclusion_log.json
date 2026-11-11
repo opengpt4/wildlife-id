@@ -1,0 +1,13 @@
+{
+  "dropped": {
+    "eval_obs": 9,
+    "eval_observer": 4158,
+    "near_duplicate": 2,
+    "no_photo": 0
+  },
+  "n_eval_obs": 147,
+  "n_eval_observers": 92,
+  "licence_filter": "cc0,cc-by",
+  "cap_per_species": 30,
+  "species_eligible": 179
+}

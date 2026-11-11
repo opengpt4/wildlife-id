@@ -1,0 +1,88 @@
+name: build-tflite-artifact
+
+# Runs the TFLite conversion that cannot run on the macOS dev host (tensorflow and
+# onnx cannot coexist in one process there — see docs/phase0-results.md §3b).
+# Outputs the fp32 and full-integer INT8 artifacts plus their manifest; scoring
+# against the eval set happens locally, because the eval images are not in the repo.
+
+on:
+  workflow_dispatch:
+    inputs:
+      resolution:
+        description: "input resolution"
+        default: "224"
+  push:
+    paths:
+      - "ml/export/**"
+      - ".github/workflows/build-tflite.yml"
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    timeout-minutes: 60
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Install CPU toolchain
+        run: |
+          python -m pip install --upgrade pip wheel setuptools
+          pip install --index-url https://download.pytorch.org/whl/cpu torch torchvision
+          pip install open_clip_torch onnx onnx2tf tensorflow-cpu pillow numpy huggingface_hub
+
+      - name: Export ONNX + text embeddings
+        env:
+          HF_HOME: ${{ github.workspace }}/.hf
+        run: |
+          python ml/export/export_vision_tower.py \
+            --resolution ${{ github.event.inputs.resolution || '224' }} \
+            --out-dir data/eval/artifacts
+
+      - name: Convert to TFLite (fp32 + INT8)
+        run: |
+          python ml/export/build_tflite_linux.py \
+            --onnx data/eval/artifacts/vision_tower_224.onnx \
+            --calibration ml/export/calibration_manifest.csv \
+            --out-dir data/eval/artifacts
+
+      - name: Smoke-test the artifacts
+        run: |
+          python - <<'PY'
+          import json, os, numpy as np, tensorflow as tf
+          m = json.load(open("data/eval/artifacts/tflite_manifest.json"))
+          for key in ("fp32", "int8"):
+              p = m[key]["path"]
+              size_mb = os.path.getsize(p) / 1e6
+              interp = tf.lite.Interpreter(model_path=p)
+              interp.allocate_tensors()
+              inp = interp.get_input_details()[0]
+              out = interp.get_output_details()[0]
+              print(key, "size", round(size_mb, 1), "MB",
+                    "in", inp["shape"], inp["dtype"].__name__,
+                    "out", out["shape"], out["dtype"].__name__)
+              assert out["shape"][-1] == 512, "embedding width must be 512"
+              x = np.zeros(inp["shape"], dtype=inp["dtype"])
+              if inp["dtype"] != np.float32:
+                  x[...] = int(inp["quantization"][1])  # zero point
+              interp.set_tensor(inp["index"], x)
+              interp.invoke()
+              y = interp.get_tensor(out["index"])
+              assert np.isfinite(y.astype(np.float32)).all(), "non-finite output"
+          assert os.path.getsize(m["int8"]["path"]) / 1e6 <= 120, "G7 violated"
+          print("smoke test OK")
+          PY
+
+      - name: Upload artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: bioclip-vitb16-224-tflite
+          path: |
+            data/eval/artifacts/*.tflite
+            data/eval/artifacts/tflite_manifest.json
+            data/eval/artifacts/prompts.json
+            data/eval/artifacts/export_manifest.json
+            data/eval/artifacts/text_embeddings_200.npz
+          retention-days: 90

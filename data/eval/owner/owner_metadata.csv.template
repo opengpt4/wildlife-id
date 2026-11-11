@@ -1,0 +1,3 @@
+file,scientific_name,common_name,taxon_group,observed_on,latitude,longitude,notes
+IMG_0001.HEIC,Papilio polytes,Common Mormon Swallowtail,butterfly,2026-10-04,22.31,114.17,example row - delete me
+IMG_0002.HEIC,Passer montanus,Eurasian Tree Sparrow,bird,2026-10-04,,,example row - delete me

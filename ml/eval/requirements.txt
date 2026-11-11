@@ -1,0 +1,7 @@
+# Phase 0 eval pipeline (host-side, fp32 baseline). Pinned for reproducibility.
+# Install into a venv OUTSIDE the repo tree: python3.11 -m venv .venv
+torch==2.5.1
+torchvision==0.20.1
+open_clip_torch==3.3.0
+pillow==13.0.0
+requests==2.32.5

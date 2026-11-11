@@ -1,0 +1,261 @@
+{
+  "config": {
+    "train_photos": 3902,
+    "species_covered": 179,
+    "species_zeroshot_only": 21,
+    "train_observers": 110,
+    "val_observers": 19,
+    "best_epoch": 120,
+    "scale": 24.969,
+    "eval_manifest_sha256": "b029f55c7495fbf30c16928d25e5460d3de389a4cf42970b59881bf33271fd24",
+    "frozen": true,
+    "resolution": 224,
+    "train_manifest_sha256": "1d2129726e7b902339a8714e11c95f54ce8730eeb38d5c1f4a81b96d33e6336b",
+    "preprocessing": "open_clip transform: shorter-side 224 bicubic, centre crop, CLIP mean/std",
+    "licence": "CC0 + CC-BY only (Route A)"
+  },
+  "validation": {
+    "zeroshot": {
+      "n": 219,
+      "top1": 74.89,
+      "top1_ci95": [
+        68.7,
+        80.2
+      ],
+      "top5": 90.41,
+      "top5_ci95": [
+        85.8,
+        93.6
+      ]
+    },
+    "head": {
+      "n": 219,
+      "top1": 78.54,
+      "top1_ci95": [
+        72.6,
+        83.5
+      ],
+      "top5": 91.78,
+      "top5_ci95": [
+        87.4,
+        94.7
+      ]
+    },
+    "paired": {
+      "delta_pts": 3.65,
+      "ci95": [
+        -1.83,
+        9.13
+      ],
+      "fixed": 23,
+      "broken": 15,
+      "n": 219
+    }
+  },
+  "eval_zeroshot": {
+    "n": 147,
+    "top1": 77.55,
+    "top1_ci95": [
+      70.2,
+      83.5
+    ],
+    "top5": 91.84,
+    "top5_ci95": [
+      86.3,
+      95.3
+    ]
+  },
+  "eval_head": {
+    "n": 147,
+    "top1": 79.59,
+    "top1_ci95": [
+      72.4,
+      85.3
+    ],
+    "top5": 91.84,
+    "top5_ci95": [
+      86.3,
+      95.3
+    ]
+  },
+  "eval_paired_full": {
+    "delta_pts": 2.04,
+    "ci95": [
+      -4.76,
+      8.84
+    ],
+    "fixed": 16,
+    "broken": 13,
+    "n": 147
+  },
+  "eval_common20_zeroshot": {
+    "n": 60,
+    "top1": 75.0,
+    "top1_ci95": [
+      62.8,
+      84.2
+    ],
+    "top5": 93.33,
+    "top5_ci95": [
+      84.1,
+      97.4
+    ]
+  },
+  "eval_common20_head": {
+    "n": 60,
+    "top1": 78.33,
+    "top1_ci95": [
+      66.4,
+      86.9
+    ],
+    "top5": 88.33,
+    "top5_ci95": [
+      77.8,
+      94.2
+    ]
+  },
+  "eval_common20_paired": {
+    "delta_pts": 3.33,
+    "ci95": [
+      -10.0,
+      16.67
+    ],
+    "fixed": 9,
+    "broken": 7,
+    "n": 60
+  },
+  "uncovered_eval_species": [],
+  "gate_g2": {
+    "target": 85.0,
+    "measured": 78.33,
+    "status": "FAIL"
+  },
+  "gate_g1": {
+    "target": 70.0,
+    "measured": 79.59,
+    "status": "PASS"
+  },
+  "falsification_rule": "below 80% top-1 overall => head is not worth its complexity, revert to zero-shot",
+  "prediction_sample": [
+    {
+      "file": "images/346550955_631730125.jpg",
+      "true": "Delias pasithoe",
+      "top1": "Delias pasithoe",
+      "correct": true
+    },
+    {
+      "file": "images/405495732_744821347.jpg",
+      "true": "Delias pasithoe",
+      "top1": "Delias pasithoe",
+      "correct": true
+    },
+    {
+      "file": "images/413971461_762002094.jpg",
+      "true": "Delias pasithoe",
+      "top1": "Delias pasithoe",
+      "correct": true
+    },
+    {
+      "file": "images/367006921_670196962.jpg",
+      "true": "Papilio polytes",
+      "top1": "Papilio polytes",
+      "correct": true
+    },
+    {
+      "file": "images/340571323_619797007.jpg",
+      "true": "Papilio polytes",
+      "top1": "Papilio polytes",
+      "correct": true
+    },
+    {
+      "file": "images/395754550_725686237.jpg",
+      "true": "Papilio polytes",
+      "top1": "Papilio polytes",
+      "correct": true
+    },
+    {
+      "file": "images/396104669_726378499.jpg",
+      "true": "Mycalesis mineus",
+      "top1": "Mycalesis mineus",
+      "correct": true
+    },
+    {
+      "file": "images/411972302_757959091.jpg",
+      "true": "Mycalesis mineus",
+      "top1": "Mycalesis mineus",
+      "correct": true
+    },
+    {
+      "file": "images/355119200_647749019.jpg",
+      "true": "Mycalesis mineus",
+      "top1": "Mycalesis mineus",
+      "correct": true
+    },
+    {
+      "file": "images/410740005_755465800.jpg",
+      "true": "Pseudozizeeria maha",
+      "top1": "Zeltus amasa",
+      "correct": false
+    },
+    {
+      "file": "images/332839970_604133508.jpg",
+      "true": "Pseudozizeeria maha",
+      "top1": "Pseudozizeeria maha",
+      "correct": true
+    },
+    {
+      "file": "images/366973207_670135274.jpg",
+      "true": "Pseudozizeeria maha",
+      "top1": "Pseudozizeeria maha",
+      "correct": true
+    },
+    {
+      "file": "images/413746206_761553364.jpg",
+      "true": "Hypolimnas bolina",
+      "top1": "Schoeniclus pusillus",
+      "correct": false
+    },
+    {
+      "file": "images/393738972_721736823.jpg",
+      "true": "Hypolimnas bolina",
+      "top1": "Hypolimnas bolina",
+      "correct": true
+    },
+    {
+      "file": "images/367012920_670206299.jpg",
+      "true": "Hypolimnas bolina",
+      "top1": "Hypolimnas bolina",
+      "correct": true
+    },
+    {
+      "file": "images/367352952_670859029.jpg",
+      "true": "Euploea midamus",
+      "top1": "Euploea midamus",
+      "correct": true
+    },
+    {
+      "file": "images/386161492_707022120.jpg",
+      "true": "Euploea midamus",
+      "top1": "Euploea core",
+      "correct": false
+    },
+    {
+      "file": "images/332727466_603903244.jpg",
+      "true": "Euploea midamus",
+      "top1": "Euploea core",
+      "correct": false
+    },
+    {
+      "file": "images/336905169_612329437.jpg",
+      "true": "Zemeros flegyas",
+      "top1": "Zemeros flegyas",
+      "correct": true
+    },
+    {
+      "file": "images/413974757_762008953.jpg",
+      "true": "Zemeros flegyas",
+      "top1": "Zemeros flegyas",
+      "correct": true
+    }
+  ]
+}

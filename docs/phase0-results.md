@@ -1,0 +1,281 @@
+# Phase 0 results — first numbers
+
+**Date:** 2026-11-11 · **Author:** Atlas · **Status:** S3 complete, S2/S5 partially
+measured (fp32 zero-shot only), S1/S4 blocked on hardware, S2's INT8 half not yet run.
+
+> **Charter note:** decision 2 (384 px) has been amended to 224 px with owner
+> approval. The edit to `AGENTS.md` is pending the parent agent; until it lands,
+> ADR 0001 §2 is authoritative for the shipped input resolution. This document
+> does not treat the unamended charter as blocking.
+
+Everything below is measured on this machine unless it says *estimate*. Raw data:
+`data/eval/results/fp32_inat.json` (+ `.md`), `linear_probe.json`,
+`manifest_v0_november.csv`.
+
+## 1. What was actually run
+
+| Item | Value |
+|---|---|
+| Model | `imageomics/bioclip`, open_clip `ViT-B-16`, 512-d embeddings, fp32 |
+| Weights | `hf-hub:imageomics/bioclip`, cached locally; not committed |
+| Eval set | 147 photos, 49 species, **all 12 calendar months**, 92 distinct observers, 2024-04 → 2026-11 |
+| Licences | 138 CC-BY-NC, 7 CC-BY, 2 CC0 (attribution per photo in the manifest) |
+| Candidate set | 200 species (100 butterflies + 100 birds), thinnest species 346 HK observations |
+| Full checklist | **828** HK research-grade species (562 birds, 266 butterflies) |
+| Protocol | shorter side → N, centre crop, bicubic, cosine vs text embeddings, no augmentation |
+| Host | Apple Silicon, MPS, torch 2.5.1, open_clip 3.3.0 |
+| Manifest sha256 | `fp32_inat.json → config.manifest_sha256` |
+
+Two sets were built. The first (v0) sampled the most recent observations per
+species and produced 149 photos **all taken in the previous 21 days** — one
+November, not a year. It is kept as `data/eval/results/manifest_v0_november.csv`
+because it produced a *different conclusion about resolution* (below), and that
+is exactly the kind of error the eval set exists to catch.
+
+## 2. Results — fp32 zero-shot
+
+Closed-set, cosine similarity against precomputed text embeddings.
+
+| px | prompt | candidate set | K | top-1 % [95% CI] | top-5 % | common-20 top-1 % |
+|---|---|---|---|---|---|---|
+| 224 | `a photo of {name}` | regional 200 | 200 | **77.5** [70.2–83.5] | 91.8 | 75.0 |
+| 224 | `a photo of {name}` | full checklist | 828 | 68.0 [60.1–75.0] | 87.1 | 63.3 |
+| 224 | `a photo of {name}` | eval species only | 49 | 86.4 [79.9–91.0] | 95.2 | 86.7 |
+| 384 † | `a photo of {name}` | regional 200 | 200 | 73.5 [65.8–79.9] | 93.2 | 70.0 |
+| 384 | `a photo of {name}` | full checklist | 828 | 63.3 [55.2–70.6] | 87.1 | 55.0 |
+| 224 | `{name}` | regional 200 | 200 | 53.1 [45.0–60.9] | 74.2 | 38.3 |
+| 384 | `{name}` | regional 200 | 200 | 52.4 [44.3–60.3] | 70.8 | 41.7 |
+
+† 384 px is the **documented fallback**, kept with its numbers because the
+resolution decision can be revisited (ADR 0001 §2). It is not the shipped
+configuration as of this document.
+
+By group at 224 / `a photo of` / K=200: butterflies **80.0%**, birds **75.0%** top-1
+(n=75 and n=72 — not distinguishable from each other).
+
+Paired comparison, same 147 images, same text embeddings, 4000-sample bootstrap:
+
+| prompt | candidate set | 224 → 384 top-1 | delta | 95% CI | fixed / broken |
+|---|---|---|---|---|---|
+| `a photo of` | regional 200 | 77.5 → 73.5 | **−4.1** | −10.2 … +2.0 | 8 / 14 |
+| `a photo of` | full checklist | 68.0 → 63.3 | −4.8 | −11.6 … +1.4 | 9 / 16 |
+| `{name}` | regional 200 | 53.1 → 52.4 | −0.7 | −6.1 … +4.8 | 8 / 9 |
+
+## 3. Gates
+
+| Gate | Target | Measured | Status |
+|---|---|---|---|
+| G1 top-1 overall | ≥ 70% | **77.5%** [70.2–83.5] | **PASS** (lower CI bound sits on the gate) |
+| G2 top-1 common-20 | ≥ 85% | **75.0%** | **FAIL**, −10.0 pts |
+| G3 top-5 | ≥ 90% | **91.8%** | **PASS** |
+| G4 INT8 vs fp32 | ≤ 2.0 pts | **−0.68 pts** (−2.72…+1.36, paired, n=147), measured at 224 px on an **ONNX Runtime INT8 proxy** | **PASS on proxy** — TFLite re-confirmation pending |
+| G5 latency p50 | ≤ 1000 ms | not measured | no Android device attached |
+| G6 iPhone latency | ≤ 500 ms | deferred | no Xcode/Simulator on this machine |
+| G7 artifact | ≤ 120 MB | **87.8 MB** INT8 vs 345.0 MB fp32 (ONNX proxy, §3b) | **PASS on proxy** — TFLite artifact unmeasured |
+
+These are fp32 **zero-shot** numbers over a closed 200-set — a floor, not the
+product. G1/G3 are cleared by zero-shot alone; G2 is not.
+
+## 3b. INT8 — G4 and G7 (measured on a proxy artifact)
+
+**The TFLite conversion path is blocked on this host.** `tensorflow 2.18/2.21` +
+`onnx2tf 1.28.8` cannot be imported together: importing `onnx` after `tensorflow`
+aborts the process with `libc++abi: terminating due to uncaught exception of type
+std::__1::system_error: mutex lock failed: Invalid argument`, and importing
+`tensorflow` after `onnx` deadlocks (killed after 4 min). `ai-edge-torch` needs
+TensorFlow + torch in one environment, which is the same collision. These are
+environment failures on the conversion toolchain, not statements about the model:
+the ONNX export is numerically identical to PyTorch (cosine 1.000000 on all five
+sampled images).
+
+So G4/G7 were measured through **ONNX Runtime dynamic INT8** (per-channel int8
+weights, fp32 activations, `onnxruntime.quantization.quantize_dynamic`), at 224 px,
+on the same 147 photos, the same PIL preprocessing, and the same prompt strings —
+whose sha256 is asserted at load time by both scorer runs.
+
+| Artifact | size | top-1 % [95% CI] | top-5 % | common-20 | host p50 |
+|---|---|---|---|---|---|
+| fp32 ONNX | 345.0 MB | 78.91 [71.6–84.7] | 92.52 | 76.67 | 20.3 ms |
+| INT8 ONNX (dynamic) | **87.8 MB** | **78.23** [70.9–84.1] | 91.16 | 75.00 | 16.7 ms |
+
+Paired, same 147 images: **−0.68 points top-1** (95% CI −2.72…+1.36); 2 photos
+broken, 1 fixed. By group: butterflies unchanged (78.67 both), birds 79.17 → 77.78.
+
+**Reading this honestly:** the accuracy cost of quantisation looks negligible and
+the size lands at 88 MB, both inside the gates — but this quantises *weights*
+only, with activations still fp32, which is the friendliest possible INT8. A
+full-integer TFLite artifact also quantises activations and the input tensor, and
+that is where ViT attention usually loses its points. **G4 and G7 are therefore
+"passing on a proxy", not closed.** They close when the TFLite artifact is built in
+a Linux container and re-scored with `ml/export/eval_tflite.py`, which is already
+written to run that check and to refuse to score if the prompt strings moved.
+
+One incidental data point: swapping the *preprocessing implementation* (open_clip's
+torch transform → my PIL transform) moved top-1 from 77.55% to 78.91%, i.e. **1.4
+points**. Implementation details are worth more than several of the effects we are
+trying to measure, which is why every comparison here is paired.
+
+## 4. Findings
+
+**F1 — 384 px does not earn its 2.9× compute; 224 px wins on top-1.**
+At K=200 the paired delta is −4.1 points top-1 in favour of 224, with 14 photos
+broken and 8 fixed by going to 384. The CI includes zero, so this is "no evidence
+384 helps, point estimate says it costs" — and the v0 November-only set said the
+opposite (+2.1 for 384), which is why a single-season eval set cannot decide an
+architecture. Top-5 does improve slightly at 384 (93.2 vs 91.8), i.e. 384 spreads
+probability mass without improving the head of the ranking.
+*Consequence:* ADR 0001 §2's pre-agreed rule fires — adopt 224, which also gives
+the latency spike 2.9× of headroom against a budget already predicted to fail on
+CPU. This contradicts charter decision 2 and needs the owner's sign-off.
+
+**F2 — the prompt template is worth +24 points, bigger than any other lever here.**
+`a photo of Papilio polytes` 77.5% vs `Papilio polytes` 53.1%. That is a larger
+effect than resolution, and larger than the regional prior. The region pack must
+ship the exact prompt template alongside the text embeddings; a pack generated
+with bare binomials is a different, much worse model.
+
+**F3 — the regional prior is worth +9.5 points and clears the S5 decision rule.**
+K=200 vs K=828: 77.5% vs 68.0% top-1. Threshold was ≥ 5 points to keep GPS/month
+candidate narrowing in v1; +9.5 means it stays. Note this measures *candidate set
+size*, not GPS or month filtering — the month arm is not yet built, and the
+month-stratified set is now in place to test it.
+
+**F4 — G2 fails at zero-shot, and a head trained on three photos per species does
+not fix it.** A leave-one-out ridge probe on the frozen 224 px features reaches
+61.9% top-1 / 56.7% common-20 — *worse* than zero-shot, because 151 of the 200
+classes have no training examples at all and three examples per class cannot fit a
+200-way linear head. Diagnostic only, not a gate result (`linear_probe.json`).
+*Consequence:* the linear head is not a cheap patch; it requires a real training
+set (thousands of HK observations, ~20–50 per species) and that data acquisition
+is now the critical path for G2.
+
+**F5 — the "curated close-up" bias is real but overstated.** Spot-checking the
+misclassifications found genuine field photos inside the iNat slice: a butterfly
+occupying ~5% of a cluttered foliage frame, and another shot into a backlit tree
+canopy where the subject is a few pixels. Research-grade means "two identifiers
+agreed", not "well framed". So this slice is closer to the product's real input
+than the plan assumed — the owner slice is still **pending** (the folder exists,
+the photos do not), so the honest field-condition number does not exist yet, but
+the expected gap between the two slices is smaller than the plan claimed. Worst confusions are congeners and
+look-alikes, which is the correct failure mode:
+`Papilio polytes → Papilio xuthus`, `Pseudozizeeria maha → Zizina otis`,
+`Euploea midamus → Euploea core`, `Passer montanus → Psittacula eupatria` (×2).
+
+**F6 — 147 photos cannot resolve the gates (±6.7 points).** At 77.5% the 95% CI is ±6.7 points,
+so "70% target" and "77.5% measured" are barely distinguishable, and the
+resolution delta of 4 points is inside noise. If G1/G2 are going to decide a
+go/no-go, the set needs to be ~400–600 photos, or the decision must be made on
+the paired deltas rather than the absolute level. Stating this now rather than
+discovering it at the decision meeting.
+
+## 5. What is next, in order
+
+1. ~~Owner sign-off on dropping 384 → 224~~ — approved 2026-11-11; ADR 0001 amended.
+2. **TFLite build in a Linux container** — the conversion toolchain cannot run on
+   this macOS host (see §3b). Build the full-integer artifact, re-score with
+   `ml/export/eval_tflite.py`, and confirm G4/G7 against the shipped artifact
+   rather than the ONNX proxy.
+3. **Training-data pipeline for the head (G2)** — fetch 20–50 iNat observations
+   per candidate species with a *train* split disjoint by observation id from this
+   eval set, then logistic regression on frozen features. This is the only route
+   to 85% on the common-20.
+4. **Device benchmark (G5)** — needs an Android phone; harness is written to run
+   unchanged on whatever gets attached.
+5. **Owner slice** — 50 field photos; instructions in `data/eval/owner/README.md`.
+
+## 6. Not measured, explicitly
+
+iOS anything, on-device latency, INT8 accuracy, artifact size, the month/GPS prior
+conditions (only candidate-set size), the owner slice, and any species outside
+Hong Kong.
+
+## 7. Methodology notes — the traps worth writing down
+
+**Preprocessing is part of the model definition.** The same weights, the same
+photos, the same text embeddings produced **77.55%** top-1 through open_clip's
+torchvision transform and **78.91%** through an equivalent PIL transform — a
+**1.36 point** swing from the resize/crop implementation alone (torchvision
+resizes with antialiasing and rounds differently; PIL bicubic does not). That is
+larger than the resolution effect we measured (4.1 points, CI including zero) and
+larger than the INT8 penalty (−0.68 points).
+
+Therefore, as a standing rule:
+
+1. **Every comparison is paired** — same images, same preprocessing, same text
+   embeddings, one variable changed — and reported with a bootstrap CI on the
+   paired difference. Unpaired absolute numbers are not evidence.
+2. **Every results table names its preprocessing.** "77.5%" without the transform
+   behind it is not reproducible, and two numbers from different pipelines must
+   never be subtracted from each other.
+3. **Sub-2-point differences on 147 photos are not interpretable**, whether or not
+   they look like progress. The CI on a single 77.5% measurement is ±6.7 points.
+4. The eval set's preprocessing is: shorter side → 224 bicubic, centre crop,
+   CLIP mean/std, no augmentation. The device pipeline must reproduce exactly
+   this, and a mismatch will show up as an accuracy drop that looks like a model
+   regression.
+
+## 8. G2 — Route A head trained and measured: **FAIL**
+
+Funded 2026-11-11 (Route A, CC0 + CC-BY only). Training set: **3,903 photos, 179
+species, 129 observers**, median 20 photos/species (min 8, max 40), 785 CC0 + 3,118
+CC-BY, per-photo attribution in `data/train/attribution.csv`. The two numbers that
+matter: **G2 is 78.33%, not 85%**, and by the pre-agreed falsification rule
+(< 80% top-1) the head does not earn its complexity.
+
+### Protocol (fixed before looking at eval)
+
+- Features frozen at 224 px, fp32, same transform as the fp32 reference.
+- Classifier is a 200-way linear layer initialised from the text embeddings; only
+  the 179 covered species' rows train, so the 21 uncovered species keep zero-shot
+  weights inside the same scorer (the per-species routing, expressed as frozen rows).
+- Split **by observer**: 110 train observers (3,750 photos), 19 validation
+  observers (153 photos). No eval observation, observer, or near-duplicate session
+  is present — asserted in code, not assumed.
+- Regularisation chosen **only on the validation split**: grid over wd ∈ {1e-4,
+  1e-3, 1e-2} → val top-1 78.08 / **78.54** / 68.98 → selected wd = 1e-3.
+- Then, once, scored on the frozen eval manifest (sha256 `b029f55c…` asserted).
+
+### Result at the validation-selected configuration, three seeds
+
+| seed | eval full top-1 | Δ vs zero-shot | common-20 top-1 | Δ vs zero-shot | paired CI (common-20) |
+|---|---|---|---|---|---|
+| 0 | 77.55% | +0.00 | 75.00% | +0.00 | −13.3…+13.3 |
+| 1 | 78.23% | +0.68 | 75.00% | +0.00 | −13.3…+13.3 |
+| 2 | 77.55% | +0.00 | 73.33% | −1.67 | −13.3…+11.7 |
+
+Zero-shot reference on the same 147 photos: 77.55% full, 75.00% common-20.
+
+**The head buys nothing measurable.** The paired deltas straddle zero in every
+seed, and the spread between seeds (±2.7 points on common-20) is larger than the
+effect. G2 stays **FAIL**; G1 and G3 are unchanged.
+
+### The trap worth recording — one configuration "passed"
+
+With **wd = 1e-4** the same pipeline scores **83.67% full / 85.00% common-20**,
+i.e. exactly on the gate. That number is *not* the result, for two reasons:
+
+1. Validation **preferred wd = 1e-3** (78.54 vs 78.08). Choosing 1e-4 because it
+   scores better *on the eval set* is selecting on the test set — the one thing
+   this harness exists to prevent.
+2. Averaged over the three tuned configurations the head sits at ~76% common-20;
+   85.0% is the top of a 12-point spread driven by a hyperparameter, not a
+   reproducible capability.
+
+It is written down here rather than deleted, because a future reader will find
+that number in `data/train/` scratch runs and needs to know why it is not the
+headline. **A single configuration landing exactly on a threshold, chosen after
+seeing the threshold, is a coincidence with good PR.**
+
+### Consequence — what I recommend
+
+Per the owner's falsification rule:
+
+1. **Ship zero-shot.** It is simpler, has no training set to defend, no licence
+   surface beyond the text embeddings, and performs the same.
+2. **Document the common-20 bar at 75%** as measured (zero-shot), and carry 85% as
+   an unmet v2 target rather than pretending it was cleared.
+3. The head is not abandoned, it is **not funded further without new information**:
+   either materially more data (the budget's 5,566 were not reachable — Route A
+   delivered 3,903 because permissive photos are thinner per observer than raw
+   counts suggested), or a different approach (fine-tuning the tower, not just a
+   linear probe; or two-stage coarse-then-species).

@@ -1,0 +1,24 @@
+# Phase 0 staging. Never commit: weights, photos, venvs, caches, artifacts.
+.venv/
+.venv-tflite/
+.cache/
+.tmp/
+__pycache__/
+*.pyc
+
+# Eval data: manifests, scripts and RESULT FILES are committed (they are the
+# evidence); images and .onnx/.tflite artifacts are not.
+data/eval/inat/images/
+data/eval/artifacts/
+
+# Owner slice: instructions committed, photos and labels never.
+data/eval/owner/*
+!data/eval/owner/README.md
+!data/eval/owner/owner_metadata.csv.template
+
+# Training set (Route A): images and the trained head are not committed; the
+# manifest, licence-mix and attribution files are, because they prove provenance.
+data/train/images/
+data/train/converted/
+data/train/features_cache.npz
+data/train/head.pt
