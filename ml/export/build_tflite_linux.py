@@ -88,6 +88,13 @@ def main() -> int:
         non_verbose=True,
         # keep NCHW input: our preprocessing and the ONNX graph are NCHW
         keep_ncw_or_nchw_or_ncdhw_input_names=["image"],
+        # `tf.Erf` has no native TFLite kernel. Left alone it either fails the
+        # conversion outright ("neither a custom op nor a flex op") or forces
+        # TF-Select, which would make the artifact undeployable on a phone. The
+        # pseudo-erf is the Abramowitz & Stegun 7.1.26 rational approximation
+        # (max abs error ~1.5e-7) built from ops TFLite has natively — three
+        # orders of magnitude below the INT8 quantisation noise we are measuring.
+        replace_to_pseudo_operators=["erf"],
     )
 
     # ---- calibration set -----------------------------------------------------
@@ -147,6 +154,7 @@ def main() -> int:
         "prompt_list_sha256": prompt_hash,
         "calibration_images": len(cal_arrays),
         "quantisation": "full-integer int8 (weights + activations + input), calibrated",
+        "erf": "pseudo-erf, Abramowitz & Stegun 7.1.26 (max abs err ~1.5e-7)",
         "toolchain": {
             "tensorflow": tf.__version__,
             "onnx2tf": getattr(onnx2tf, "__version__", "unknown"),
