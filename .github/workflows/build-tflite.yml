@@ -32,11 +32,10 @@ jobs:
           python -m pip install --upgrade pip wheel setuptools
           pip install --index-url https://download.pytorch.org/whl/cpu torch torchvision
           # Pinned: onnx2tf's resolver backtracks to 1.28.8 against TF 2.21 anyway.
-          # tf-keras is imported explicitly by onnx2tf on TF >= 2.16 (Keras 3 split),
-          # and onnx-graphsurgeon is imported at module scope but not declared as a
-          # dependency by that release. Both omissions fail the run at import time.
+          # 1.28.8 declares no dependencies of its own but imports all of these at
+          # module scope (checked against the wheel), so they are listed explicitly.
           pip install "tensorflow-cpu==2.21.0" "onnx2tf==1.28.8" "tf-keras==2.21.0" \
-            onnx-graphsurgeon \
+            onnx-graphsurgeon sng4onnx ai-edge-litert psutil requests flatbuffers \
             open_clip_torch onnx pillow numpy huggingface_hub
           pip freeze > /tmp/pip-freeze.txt && grep -iE "tensorflow|onnx2tf|keras|graphsurgeon|onnx==" /tmp/pip-freeze.txt
 
