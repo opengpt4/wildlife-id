@@ -108,8 +108,20 @@ def main() -> int:
         raise SystemExit("no calibration images could be loaded — refusing to quantise")
     print(f"calibration arrays: {len(cal_arrays)}", file=sys.stderr)
 
+    # ---- calibration range sanity ---------------------------------------------
+    # The input tensor's quantisation is derived from these arrays, and getting it
+    # wrong silently destroys accuracy instead of failing: an int8 input range that
+    # excludes zero clips every negative value of a CLIP-normalised image.
+    cal_min = float(min(a.min() for a in cal_arrays))
+    cal_max = float(max(a.max() for a in cal_arrays))
+    print(f"calibration value range: [{cal_min:.3f}, {cal_max:.3f}]", file=sys.stderr)
+    if cal_min > -1.0 or cal_max < 1.0:
+        raise SystemExit(
+            "calibration data does not span the CLIP-normalised range; refusing to "
+            f"quantise (min {cal_min:.3f}, max {cal_max:.3f})")
+
     # ---- TFLite conversions ---------------------------------------------------
-    def convert(quantize: bool) -> str:
+    def convert(name: str, quantize: bool, io_dtype) -> str:
         conv = tf.lite.TFLiteConverter.from_saved_model(saved_model_dir)
         if quantize:
             conv.optimizations = [tf.lite.Optimize.DEFAULT]
@@ -120,19 +132,30 @@ def main() -> int:
 
             conv.representative_dataset = rep
             conv.target_spec.supported_ops = [tf.lite.OpsSet.TFLITE_BUILTINS_INT8]
-            conv.inference_input_type = tf.int8
-            conv.inference_output_type = tf.int8
+            # io_dtype is the *boundary* only: weights and activations stay int8 in
+            # every variant. int8 I/O additionally quantises the boundary tensor
+            # using the range calibrated above, which is where G4 can be lost for
+            # reasons that have nothing to do with the model's int8 arithmetic.
+            conv.inference_input_type = io_dtype
+            conv.inference_output_type = io_dtype
         tflite = conv.convert()
-        name = "vision_tower_224_int8.tflite" if quantize else "vision_tower_224_fp32.tflite"
         path = os.path.join(args.out_dir, name)
         with open(path, "wb") as f:
             f.write(tflite)
         return path
 
     paths = {}
-    for label, quant in (("fp32", False), ("int8", True)):
+    for label, quant, io_dtype, fname in (
+        ("fp32", False, None, "vision_tower_224_fp32.tflite"),
+        ("int8", True, tf.int8, "vision_tower_224_int8.tflite"),
+        # Same int8 graph, float boundary tensors: isolates int8 arithmetic from
+        # int8 input encoding. If this scores near fp32 and the int8-I/O one does
+        # not, the gate that failed is the input quantisation, not the quantised
+        # network.
+        ("int8_floatio", True, tf.float32, "vision_tower_224_int8_floatio.tflite"),
+    ):
         print(f"converting to TFLite {label} …", file=sys.stderr)
-        paths[label] = convert(quant)
+        paths[label] = convert(fname, quant, io_dtype)
 
     # ---- prompt integrity must travel with the artifact -----------------------
     prompts_json = os.path.join(args.out_dir, "prompts.json")
@@ -146,6 +169,7 @@ def main() -> int:
         "resolution": args.resolution,
         "prompt_list_sha256": prompt_hash,
         "calibration_images": len(cal_arrays),
+        "calibration_range": [round(cal_min, 3), round(cal_max, 3)],
         "quantisation": "full-integer int8 (weights + activations + input), calibrated",
         "gelu": "tanh approximation of GELU, applied in the exporter: the graph "
                 "contains no tf.Erf and no DIV, both of which break int8 conversion",
