@@ -1,9 +1,24 @@
 # Phase 0 — de-risking plan
 
-**Status:** in progress · **Owner:** Atlas · **Started:** 2026-11-11
-**Latest:** S3 complete, S5 measured, S2 measured at fp32; INT8 export in progress.
-Charter decision 2 amended to **224 px** (owner-approved 2026-11-11; `AGENTS.md`
-edit pending the parent, ADR 0001 §2 authoritative until then). Numbers in
+**Status:** Phase 0 measured, blocked on hardware · **Owner:** Atlas ·
+**Started:** 2026-11-11 · **Last updated:** 2026-11-12
+
+> **This plan is the historical record of what Phase 0 set out to test.** Where it
+> disagrees with reality, `docs/phase0-results.md` and `AGENTS.md` win. Two
+> supersessions to read first: the shipped resolution is **224 px**, not 384
+> (ADR 0001 §2), and the shipped quantisation is **dynamic-range INT8**, i.e. int8
+> weights with fp32 activations, not full-integer INT8 (ADR 0001 §3a). §2's gate
+> definitions still stand — including "INT8" being read as "the int8 artifact we
+> ship".
+
+**Latest (2026-11-12):** S3, S5 and the quantisation arm of S2 complete; the artifact
+is built in CI and scored on real TFLite. G1 PASS (77.55% on the shipping artifact),
+G3 PASS (91.16%), **G2 FAIL (73.3%)**, **G4 PASS (−1.36 pts)**, **G7 PASS (88.1 MB)**,
+G5/G6 blocked on a device. Full-integer INT8 failed at chance and is not a viable
+artifact. The month arm of the regional prior was measured and does not help (§3e).
+Charter decision 2 amended to **224 px** (owner-approved 2026-11-11) and to
+dynamic-range INT8 (2026-11-12); both are now written into `AGENTS.md`, so charter,
+ADR and plan agree. Numbers in
 `docs/phase0-results.md`. **Headline: G1 PASS (77.5%), G3 PASS (91.8%), G2 FAIL
 (75.0%).** 384 px loses to 224 px (−4.1 pts). A Route A head was trained and
 measured (3,903 photos): **G2 still FAIL (78.3%)**, no gain over zero-shot across
@@ -26,7 +41,8 @@ architecture now, not after the app is built.
 
 ## 2. Falsifiable gates (approved by the owner, 2026-11-11)
 
-All gates apply to the *shipped* artifact: INT8 vision tower + head, 384 px input.
+All gates apply to the *shipped* artifact: the int8 vision tower at **224 px**
+(no head — it was tested and dropped, `docs/phase0-results.md` §8).
 Green requires **all** of them.
 
 | # | Metric | Gate | Measured on |

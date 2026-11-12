@@ -43,9 +43,15 @@ reuse its desktop architecture.
    Consequence: **75% common-species accuracy is the measured bar; 85% is an unmet
    v2 target, not a Phase 0 deliverable.** Revisit only with a materially larger,
    better-balanced training set — not with different hyperparameters on this data.
-3. **Regional candidate set is the main accuracy lever.** GPS + month + habitat
-   narrows the candidate list before ranking. Global zero-shot over 10k species
-   is not the product.
+3. **Regional candidate set is the main accuracy lever.** Narrowing the candidate
+   list before ranking is what buys accuracy; global zero-shot over 10k species is
+   not the product. Measured (2026-11-12): **size pays, month does not** — 200
+   species versus the full 828-species checklist is worth **+9.5 points**, while a
+   month-of-year filter costs up to −3.4 points and still leaves 169–192 of 200
+   candidates, because 192/200 HK species are recorded in every month
+   (`docs/phase0-results.md` §3e, F8). **Do not build month filtering into v1 on
+   this evidence.** GPS/range and habitat are untested and are the next candidate;
+   revisiting month needs a phenology source that is not iNaturalist effort.
 4. **VLM is for explanation, not classification.** Show BioCLIP probabilities as
    uncertainty; use a VLM only for the "why" text and second opinions.
 5. **Server is optional.** FastAPI + PyTorch + object storage + Postgres. Used
@@ -127,9 +133,10 @@ The five spike questions, status:
    photos for the head experiment.
 4. **RN camera + fast-tflite compatibility — not started.** Also blocked on the
    device; `react-native-fast-tflite` is still an untested choice.
-5. **Regional prior — answered, and it stays.** +9.5 points top-1 (77.5% at K=200
-   vs 68.0% at K=828). Separately, the prompt template is worth +24 points, so the
-   region pack must ship the exact template with the embeddings.
+5. **Regional prior — answered: size yes, month no.** +9.5 points top-1 (77.5% at
+   K=200 vs 68.0% at K=828); the month arm measured negative (−0.0 to −3.4 points,
+   §3e), so it is not a v1 feature. Separately, the prompt template is worth +24
+   points, so the region pack must ship the exact template with the embeddings.
 
 Where the numbers live: `docs/phase0-results.md` (all gates, methodology traps,
 §8 for the head), `docs/adr/0001-model-artifact-and-latency-budget.md` (artifact and

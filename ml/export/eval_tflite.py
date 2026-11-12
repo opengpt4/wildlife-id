@@ -104,6 +104,8 @@ def main() -> int:
     ap.add_argument("--candidates", default="data/species/hk_candidates_200.csv")
     ap.add_argument("--checklist", default="data/species/hk_checklist.csv")
     ap.add_argument("--resolution", type=int, default=224)
+    ap.add_argument("--save-sim", default=None,
+                    help="write the 147x200 cosine matrix as .npz for offline re-ranking studies")
     args = ap.parse_args()
 
     import tensorflow as tf  # imported late so --help is cheap
@@ -211,6 +213,12 @@ def main() -> int:
             for i, r in enumerate(kept)
         ],
     }
+    if args.save_sim:
+        np.savez(args.save_sim, sim=sim, files=np.array([r["file"] for r in kept]),
+                 y=y_idx, names=np.array([c["scientific_name"] for c in cand]),
+                 months=np.array([r["observed_on"][5:7] for r in kept]))
+        print(f"wrote {args.save_sim}", file=sys.stderr)
+
     os.makedirs(os.path.dirname(args.out) or ".", exist_ok=True)
     with open(args.out, "w") as f:
         json.dump(result, f, indent=2)

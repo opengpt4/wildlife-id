@@ -9,7 +9,7 @@
     "prompt_list_sha256": "8c7367547028a593a09ee21571d4ff62680c224cd53dae37d4ddfbd2d8549ef1",
     "prompt_template": "a photo of {name}",
     "manifest_sha256": "b029f55c7495fbf30c16928d25e5460d3de389a4cf42970b59881bf33271fd24",
-    "host_invoke_ms_p50": 28.1,
+    "host_invoke_ms_p50": 27.9,
     "host_note": "host CPU ms is NOT gate G5; it only shows relative cost"
   },
   "overall": {

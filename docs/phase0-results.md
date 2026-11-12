@@ -229,6 +229,58 @@ bit-reproducible. Before a region pack becomes the versioned unit, the ONNX expo
 and the converter both need a determinism check, or packs must be identified by
 score and not by hash alone.
 
+## 3e. The month arm of the regional prior — measured, and it does not help
+
+Charter decision 3 says GPS + month + habitat narrows the candidate list. F3
+measured the *size* arm (200 vs 828 species: +9.5 points) but never the month arm,
+because that needs per-species seasonality. It has now been measured.
+
+Method: twelve month-of-year buckets per candidate species from
+`observations/histogram` (200/200 fetched, cached in
+`data/species/month_profile.json`), then the **frozen fp32 similarity matrix**
+re-ranked with a month mask — no model, no re-embedding, so this cannot move
+G1/G3/G4. A species is kept in month *m* if it was observed at all in *m* and has at
+least *t* × its yearly observations in *m*; uncalibrated species (none) are never
+filtered out. Paired bootstrap, 4000 samples, same 147 photos.
+
+| keep if month count ≥ | mean candidates | min | oracle coverage | top-1 % | Δ vs flat [95% CI] | broken / fixed | common-20 |
+|---|---|---|---|---|---|---|---|
+| — (flat 200) | 200.0 | 200 | 100% | **78.91** | — | — | 93.33 |
+| > 0 observations | 192.5 | 180 | 100.0% | 78.91 | +0.00 [+0.00, +0.00] | 0 / 0 | 93.33 |
+| ≥ 0.5% of the year | 184.5 | 163 | 98.0% | 77.55 | −1.36 [−3.40, +0.00] | 2 / 0 | 93.33 |
+| ≥ 1% of the year | 180.1 | 160 | 96.6% | 76.19 | −2.72 [−5.44, −0.68] | 4 / 0 | 91.67 |
+| ≥ 2% of the year | 168.7 | 145 | 95.2% | 75.51 | −3.40 [−6.80, +0.00] | 6 / 1 | 90.00 |
+
+**Reading it.** The prior does not narrow anything: at the loosest threshold
+**192 of 200 species remain plausible in every month**, because Hong Kong is
+subtropical and most of these species are recorded year-round. Tightening the
+threshold buys 20–30 fewer candidates, starts excluding true species (coverage
+98.0% → 95.2%), and costs accuracy monotonically. No threshold produces a gain, and
+the only statistically distinguishable effect is a loss (−2.72 points at 1%,
+CI excluding zero).
+
+**Why this is a real result and not a bad experiment.** The filter's job is to
+remove candidates; it removes 4–16% of the list while removing 0–5% of the correct
+answers plus several near-misses. When the list is already only 200 species over a
+small subtropical region, month alone carries almost no discriminative information.
+
+Caveats, stated because they bound the claim:
+
+- **iNaturalist counts are sampling effort, not phenology.** Birding effort peaks in
+  winter and spring; a species "absent" in August may simply be un-photographed.
+- **Monthly resolution is coarse.** A week-of-year profile or a wet/dry-season split
+  could behave differently; this experiment does not rule that out.
+- **147 photos.** ±6.7 points on the absolute number; the paired deltas above are
+  the part that carries the argument.
+- **The GPS arm is not tested.** Range and habitat filtering is a different
+  mechanism and plausibly a much stronger one for a territory this small — this
+  result says nothing about it.
+
+**Consequence for the charter.** Decision 3's month clause is not supported by
+measurement and should not be built into v1 on this evidence. GPS/range and habitat
+remain untested and are the obvious next candidate. If the month prior is revisited,
+it needs a phenology source that is not iNaturalist sampling effort.
+
 ## 4. Findings
 
 **F1 — 384 px does not earn its 2.9× compute; 224 px wins on top-1.**
@@ -291,6 +343,17 @@ the LayerNorm/attention dynamic-range problem ADR 0001 §5 predicted; the
 consequence is that the quantisation mode is decided by measurement, not by the
 ADR's original preference, and that **G5 latency — not accuracy — is the remaining
 risk on the shipping artifact.**
+
+
+**F8 — month filtering is not a lever in Hong Kong; the candidate-set size is.**
+On the frozen fp32 matrix, a month-of-year mask never improves top-1: +0.00 at the
+loosest threshold, −1.36, −2.72 (CI excluding zero) and −3.40 at progressively
+stricter ones, while the candidate list only shrinks from 200 to 169–192 because
+192 of 200 species are recorded in every month (§3e). The prior that *does* pay is
+size: 200 vs 828 species is worth +9.5 points (F3). **Decision 3's month clause is
+not supported by measurement** — GPS/range and habitat are untested and are the next
+candidate; a phenology source that is not iNaturalist sampling effort would be
+required to revisit month.
 
 ## 5. What is next, in order
 

@@ -1,0 +1,110 @@
+{
+  "baseline": {
+    "all": {
+      "n": 147,
+      "top1": 78.91,
+      "top1_ci95": [
+        71.6,
+        84.7
+      ],
+      "top5": 92.52
+    },
+    "common20": 93.33
+  },
+  "thresholds": {
+    "0": {
+      "relative_threshold": 0.0,
+      "mean_candidates": 192.5,
+      "min_candidates": 180,
+      "oracle_coverage": 100.0,
+      "all": {
+        "n": 147,
+        "top1": 78.91,
+        "top1_ci95": [
+          71.6,
+          84.7
+        ],
+        "top5": 92.52
+      },
+      "common20_top1": 93.33,
+      "delta_top1": 0.0,
+      "delta_ci95": [
+        0.0,
+        0.0
+      ],
+      "broken": 0,
+      "fixed": 0
+    },
+    "0.005": {
+      "relative_threshold": 0.005,
+      "mean_candidates": 184.5,
+      "min_candidates": 163,
+      "oracle_coverage": 98.0,
+      "all": {
+        "n": 147,
+        "top1": 77.55,
+        "top1_ci95": [
+          70.2,
+          83.5
+        ],
+        "top5": 91.84
+      },
+      "common20_top1": 93.33,
+      "delta_top1": -1.36,
+      "delta_ci95": [
+        -3.4,
+        0.0
+      ],
+      "broken": 2,
+      "fixed": 0
+    },
+    "0.01": {
+      "relative_threshold": 0.01,
+      "mean_candidates": 180.1,
+      "min_candidates": 160,
+      "oracle_coverage": 96.6,
+      "all": {
+        "n": 147,
+        "top1": 76.19,
+        "top1_ci95": [
+          68.7,
+          82.4
+        ],
+        "top5": 90.48
+      },
+      "common20_top1": 91.67,
+      "delta_top1": -2.72,
+      "delta_ci95": [
+        -5.44,
+        -0.68
+      ],
+      "broken": 4,
+      "fixed": 0
+    },
+    "0.02": {
+      "relative_threshold": 0.02,
+      "mean_candidates": 168.7,
+      "min_candidates": 145,
+      "oracle_coverage": 95.2,
+      "all": {
+        "n": 147,
+        "top1": 75.51,
+        "top1_ci95": [
+          68.0,
+          81.8
+        ],
+        "top5": 89.12
+      },
+      "common20_top1": 90.0,
+      "delta_top1": -3.4,
+      "delta_ci95": [
+        -6.8,
+        0.0
+      ],
+      "broken": 6,
+      "fixed": 1
+    }
+  },
+  "unknown_species": [],
+  "leakage_note": "iNat monthly counts include the 147 eval photos"
+}
