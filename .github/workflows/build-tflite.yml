@@ -77,7 +77,7 @@ jobs:
           m = json.load(open("data/eval/artifacts/tflite_manifest.json"))
           rng = np.random.default_rng(0)
           failed = []
-          for key in ("fp32", "int8", "int8_floatio"):
+          for key in ("fp32", "int8", "int8_floatio", "int8_dynamic", "fp16"):
               p = m[key]["path"]
               size_mb = os.path.getsize(p) / 1e6
               interp = tf.lite.Interpreter(model_path=p)

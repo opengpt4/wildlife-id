@@ -121,41 +121,51 @@ def main() -> int:
             f"quantise (min {cal_min:.3f}, max {cal_max:.3f})")
 
     # ---- TFLite conversions ---------------------------------------------------
-    def convert(name: str, quantize: bool, io_dtype) -> str:
+    # TFLite offers three quantisation modes, not the ladder ADR 0001 §3 imagined:
+    #   * dynamic range  — int8 weights, float activations. No calibration needed for
+    #     the weights; this is the mode the ONNX proxy measured.
+    #   * float16        — fp16 weights, float activations. Lossless enough to be a
+    #     reference, but ~2x fp32 size.
+    #   * full integer   — int8 weights AND activations, calibrated. Measured at
+    #     chance level (§3c); there is no converter flag that exempts LayerNorm.
+    # Selective quantisation (LayerNorm/softmax in fp32) therefore requires QAT or
+    # graph surgery, neither of which is a converter option.
+    def build(mode: str, name: str) -> str:
         conv = tf.lite.TFLiteConverter.from_saved_model(saved_model_dir)
-        if quantize:
+        if mode != "fp32":
             conv.optimizations = [tf.lite.Optimize.DEFAULT]
-
+        if mode in ("int8", "int8_floatio"):
             def rep():
                 for arr in cal_arrays:
                     yield [arr]
 
             conv.representative_dataset = rep
             conv.target_spec.supported_ops = [tf.lite.OpsSet.TFLITE_BUILTINS_INT8]
-            # io_dtype is the *boundary* only: weights and activations stay int8 in
-            # every variant. int8 I/O additionally quantises the boundary tensor
-            # using the range calibrated above, which is where G4 can be lost for
-            # reasons that have nothing to do with the model's int8 arithmetic.
-            conv.inference_input_type = io_dtype
-            conv.inference_output_type = io_dtype
+            conv.inference_input_type = tf.float32 if mode == "int8_floatio" else tf.int8
+            conv.inference_output_type = tf.float32 if mode == "int8_floatio" else tf.int8
+        elif mode == "fp16":
+            conv.target_spec.supported_types = [tf.float16]
         tflite = conv.convert()
         path = os.path.join(args.out_dir, name)
         with open(path, "wb") as f:
             f.write(tflite)
         return path
 
+    variants = (
+        # label,          mode,            filename
+        ("fp32",          "fp32",          "vision_tower_224_fp32.tflite"),
+        ("int8",          "int8",          "vision_tower_224_int8.tflite"),
+        ("int8_floatio",  "int8_floatio",  "vision_tower_224_int8_floatio.tflite"),
+        # The two modes that can plausibly ship at 88-120 MB. Dynamic range is the
+        # accuracy floor of any weight-only scheme; fp16 bounds what a near-lossless
+        # compression costs in size.
+        ("int8_dynamic",  "int8_dynamic",  "vision_tower_224_int8_dynamic.tflite"),
+        ("fp16",          "fp16",          "vision_tower_224_fp16.tflite"),
+    )
     paths = {}
-    for label, quant, io_dtype, fname in (
-        ("fp32", False, None, "vision_tower_224_fp32.tflite"),
-        ("int8", True, tf.int8, "vision_tower_224_int8.tflite"),
-        # Same int8 graph, float boundary tensors: isolates int8 arithmetic from
-        # int8 input encoding. If this scores near fp32 and the int8-I/O one does
-        # not, the gate that failed is the input quantisation, not the quantised
-        # network.
-        ("int8_floatio", True, tf.float32, "vision_tower_224_int8_floatio.tflite"),
-    ):
+    for label, mode, fname in variants:
         print(f"converting to TFLite {label} …", file=sys.stderr)
-        paths[label] = convert(fname, quant, io_dtype)
+        paths[label] = build(mode, fname)
 
     # ---- prompt integrity must travel with the artifact -----------------------
     prompts_json = os.path.join(args.out_dir, "prompts.json")
