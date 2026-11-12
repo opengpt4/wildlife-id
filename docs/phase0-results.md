@@ -1,7 +1,8 @@
 # Phase 0 results — first numbers
 
-**Date:** 2026-11-11 · **Author:** Atlas · **Status:** S3 complete, S2/S5 partially
-measured (fp32 zero-shot only), S1/S4 blocked on hardware, S2's INT8 half not yet run.
+**Date:** 2026-11-11, G4/G7 on TFLite added 2026-11-12 · **Author:** Atlas ·
+**Status:** S3 complete, S2 measured to a verdict (**G4 fails on the real TFLite
+artifact**, §3c; G7 passes), S1/S4 blocked on hardware.
 
 > **Charter note:** decision 2 (384 px) has been amended to 224 px with owner
 > approval. The edit to `AGENTS.md` is pending the parent agent; until it lands,
@@ -68,10 +69,10 @@ Paired comparison, same 147 images, same text embeddings, 4000-sample bootstrap:
 | G1 top-1 overall | ≥ 70% | **77.5%** [70.2–83.5] | **PASS** (lower CI bound sits on the gate) |
 | G2 top-1 common-20 | ≥ 85% | **75.0%** | **FAIL**, −10.0 pts |
 | G3 top-5 | ≥ 90% | **91.8%** | **PASS** |
-| G4 INT8 vs fp32 | ≤ 2.0 pts | **−0.68 pts** (−2.72…+1.36, paired, n=147), measured at 224 px on an **ONNX Runtime INT8 proxy** | **PASS on proxy** — TFLite re-confirmation pending |
+| G4 INT8 vs fp32 | ≤ 2.0 pts | **−78.23 pts** on the real TFLite artifact: 78.91% fp32 → 0.68% INT8 (§3c). The ONNX dynamic-range proxy had said −0.68 pts | **FAIL** — measured on the shipped format, not on a proxy |
 | G5 latency p50 | ≤ 1000 ms | not measured | no Android device attached |
 | G6 iPhone latency | ≤ 500 ms | deferred | no Xcode/Simulator on this machine |
-| G7 artifact | ≤ 120 MB | **87.8 MB** INT8 vs 345.0 MB fp32 (ONNX proxy, §3b) | **PASS on proxy** — TFLite artifact unmeasured |
+| G7 artifact | ≤ 120 MB | **88.6 MB** INT8 TFLite vs 344.9 MB fp32 TFLite (§3c, INT8 sha256 `fec8fc14a6fb2cc0…`) | **PASS** — measured on the actual artifact |
 
 These are fp32 **zero-shot** numbers over a closed 200-set — a floor, not the
 product. G1/G3 are cleared by zero-shot alone; G2 is not.
@@ -114,6 +115,70 @@ One incidental data point: swapping the *preprocessing implementation* (open_cli
 torch transform → my PIL transform) moved top-1 from 77.55% to 78.91%, i.e. **1.4
 points**. Implementation details are worth more than several of the effects we are
 trying to measure, which is why every comparison here is paired.
+
+## 3c. G4 and G7 on the real TFLite artifact — G4 **FAILS**, G7 passes
+
+Built in GitHub Actions (ubuntu 26.04, python 3.11, `tensorflow-cpu 2.21.0`,
+`onnx2tf 1.28.8`, run 43124693365), full-integer INT8 — weights, activations and
+input tensor — calibrated on 300 HK photos whose loaded value range was measured at
+build time as **[-1.792, 2.146]**. Scored with `ml/export/eval_tflite.py` on the
+same 147 photos, eval manifest sha256
+`b029f55c7495fbf3…`; the prompt list sha256 is asserted at load, so the strings
+cannot have moved between the fp32 reference and these runs.
+
+| Artifact | size | top-1 % [95% CI] | top-5 % | common-20 % | sha256 |
+|---|---|---|---|---|---|
+| TFLite fp32 | 344.9 MB | **78.91** [71.6–84.7] | 92.52 | 76.67 | `4484462e64f5e897…` |
+| TFLite INT8, int8 I/O | **88.6 MB** | **0.68** [0.1–3.8] | 2.04 | 1.67 | `fec8fc14a6fb2cc0…` |
+| TFLite INT8, float I/O (control) | **88.6 MB** | **0.00** [0.0–2.5] | 1.36 | 0.00 | `d91e680778c5d040…` |
+
+Raw output: `data/eval/results/tflite_{fp32,int8,int8_floatio}.json`.
+
+**G7 passes and is now closed.** 88.6 MB ≤ 120 MB, measured on the artifact that
+would ship, not on a proxy.
+
+**G4 fails against a ≤ 2.0-point budget: 0.68% versus 78.91%, i.e. −78.23 points.**
+The model is at chance (1/200 = 0.5%).
+
+**The fp32 artifact is the control that makes the failure attributable.** It
+reproduces the ONNX fp32 proxy exactly — 78.91 / 92.52 / 76.67 on the same 147
+photos, same preprocessing, same text embeddings, different runtime and file
+format. So the conversion pipeline, the prompt strings and the preprocessing are
+all doing what the reference does. What differs is quantisation, and nothing else.
+
+**It is not the input boundary.** The third artifact keeps the same int8 weights
+and activations with float input and output tensors, so no input clipping can
+occur; it scores 0.00%, no better. The int8 graph itself is what loses the model.
+
+**Where it loses.** Embedding cosine against fp32 on the same images is 0.10–0.31,
+while two *different* fp32 images sit at 0.73 — the output is not collapsed to a
+constant, it is noise. Early patch-embed activations still match fp32 at 0.98–0.99;
+the error compounds through the blocks and is 0.137 by the last LayerNorm. That is
+the failure ADR 0001 §5 predicted in advance: LayerNorm and attention are where a
+ViT's per-tensor dynamic range exceeds what one int8 scale can carry.
+
+**One quirk worth recording,** because it would silently wreck any model shipped
+with int8 I/O: the converter quantised the input tensor to `[0.185, 4.12]`
+(zero-point −12) even though the calibration arrays span `[-1.792, 2.146]`. That
+range clips **59.4% of all pixel values** in the eval set, and every image has
+values below its floor. It is not the cause of this failure — the float-I/O
+control rules that out — but a pipeline that trusted the input range would ship a
+model that is broken in a way no accuracy number would explain.
+
+**Decision, per §8's rule and ADR 0001 §3.** This is recorded as a **TFLite-side
+failure**: the artefact of a post-training full-integer conversion, not evidence
+that BioCLIP cannot identify HK species, and not a reason to retrain the regional
+head (which §8 already found worthless). The zero-shot configuration is unchanged.
+The response is the ADR's pre-agreed ladder, in order: (a) selective or
+per-channel quantisation with LayerNorm and softmax left in fp32; (b) float16
+weights with int8 activations; (c) float16 throughout, ~172 MB, which **fails G7**
+and therefore needs an owner decision; (d) a distilled student, Phase 1.
+
+**Methodology lesson, stated plainly.** The dynamic-range proxy said −0.68 points
+and the real artifact said −78.23. A proxy that quantises weights but not
+activations is not a preview of full-integer INT8; it is a measurement of a
+different experiment that happens to share a name. §3b's caveat was correct on the
+substance and far too gentle on the magnitude.
 
 ## 4. Findings
 
@@ -171,23 +236,28 @@ discovering it at the decision meeting.
 ## 5. What is next, in order
 
 1. ~~Owner sign-off on dropping 384 → 224~~ — approved 2026-11-11; ADR 0001 amended.
-2. **TFLite build in a Linux container** — the conversion toolchain cannot run on
-   this macOS host (see §3b). Build the full-integer artifact, re-score with
-   `ml/export/eval_tflite.py`, and confirm G4/G7 against the shipped artifact
-   rather than the ONNX proxy.
-3. **Training-data pipeline for the head (G2)** — fetch 20–50 iNat observations
+2. ~~TFLite build in a Linux container~~ — done 2026-11-12 via GitHub Actions.
+   G7 passes at 88.6 MB; **G4 fails at −78.23 points** (§3c). The conversion
+   toolchain itself is now reproducible; the quantisation is what has to change.
+3. **Quantisation ladder, before any latency work** — G5 is unmeasurable on a model
+   that identifies nothing. ADR 0001 §3 order: selective/per-channel INT8 with
+   LayerNorm and softmax in fp32; then float16 weights + int8 activations; then
+   float16 throughout (~172 MB, fails G7, owner decision). Re-score each with
+   `ml/export/eval_tflite.py`; the gate is unchanged at ≤ 2.0 points.
+4. **Training-data pipeline for the head (G2)** — fetch 20–50 iNat observations
    per candidate species with a *train* split disjoint by observation id from this
-   eval set, then logistic regression on frozen features. This is the only route
-   to 85% on the common-20.
-4. **Device benchmark (G5)** — needs an Android phone; harness is written to run
+   eval set, then logistic regression on frozen features. Note §8: this route
+   already failed at 3,903 photos and needs materially more data, not more tuning.
+5. **Device benchmark (G5)** — needs an Android phone; harness is written to run
    unchanged on whatever gets attached.
-5. **Owner slice** — 50 field photos; instructions in `data/eval/owner/README.md`.
+6. **Owner slice** — 50 field photos; instructions in `data/eval/owner/README.md`.
 
 ## 6. Not measured, explicitly
 
-iOS anything, on-device latency, INT8 accuracy, artifact size, the month/GPS prior
-conditions (only candidate-set size), the owner slice, and any species outside
-Hong Kong.
+iOS anything, on-device latency (G5/G6), the month/GPS prior conditions (only
+candidate-set size), the owner slice, and any species outside Hong Kong. INT8
+accuracy and artifact size were measured on 2026-11-12 (§3c) and are no longer on
+this list.
 
 ## 7. Methodology notes — the traps worth writing down
 
