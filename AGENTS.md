@@ -89,24 +89,28 @@ docs/     ADRs, phase 0 results, data model, decisions log
 
 ## Status
 
-**Phase 0 is measured, not finished.** Six of eight gates have a verdict, two need
-hardware that is not attached, and no feature work has started — `app/` and
-`server/` are empty on purpose.
+**Phase 0 is measured, not finished.** Five of seven gates have a verdict; G5 and
+G6 need hardware that is not attached, and no feature work has started — `app/`
+and `server/` are empty on purpose.
 
 Shipping candidate: BioCLIP ViT-B/16 vision tower, 224 px, dynamic-range INT8,
 **88.1 MB**, zero-shot over the 200-species HK candidate set.
 
+Numbers below are the **shipping artifact** (dynamic-range INT8); where the fp32
+reference differs it is given in brackets, because the gate was originally set
+against fp32.
+
 | Gate | Target | Measured | Status |
 |---|---|---|---|
-| G1 top-1 | ≥ 70% | 77.55% | pass |
-| G2 common-20 | ≥ 85% | 73.3% | **fail** — v2 target, needs data not tuning |
+| G1 top-1 | ≥ 70% | 77.55% (fp32: 78.91%) | pass |
+| G2 common-20 | ≥ 85% | 73.3% (fp32: 75.0%) | **fail** — v2 target, needs data not tuning |
 | G3 top-5 | ≥ 90% | 91.16% | pass |
 | G4 INT8 vs fp32 | ≤ 2.0 pts | −1.36 pts [−3.40, 0.00] | pass, thin margin |
 | G5 latency p50 | ≤ 1000 ms | not measured | **blocked: no Android device** |
 | G6 iPhone latency | ≤ 500 ms | not run | deferred, no Xcode here |
 | G7 artifact | ≤ 120 MB | 88.1 MB | pass |
 
-The five spike questions, answered:
+The five spike questions, status:
 
 1. **INT8 latency on target devices — not answered.** Needs a phone (G5). This is
    the only remaining gate that can invalidate the architecture: weight-only
