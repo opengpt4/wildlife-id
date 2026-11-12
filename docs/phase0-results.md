@@ -5,10 +5,10 @@
 (−78.23 pts, §3c) and dynamic-range INT8 passes it (−1.36 pts, §3d)**; G7 passes at
 88.1 MB. S1/S4 blocked on hardware, and G5 is now the gate that decides shipping.
 
-> **Charter note:** decision 2 (384 px) has been amended to 224 px with owner
-> approval. The edit to `AGENTS.md` is pending the parent agent; until it lands,
-> ADR 0001 §2 is authoritative for the shipped input resolution. This document
-> does not treat the unamended charter as blocking.
+> **Charter note:** decision 2 has been amended twice — to 224 px (owner-approved
+> 2026-11-11) and to int8 weights with fp32 activations (2026-11-12). Both are now
+> written into `AGENTS.md`, so charter and ADR agree; ADR 0001 §2 and §3a remain
+> the detailed record.
 
 Everything below is measured on this machine unless it says *estimate*. Raw data:
 `data/eval/results/fp32_inat.json` (+ `.md`), `linear_probe.json`,

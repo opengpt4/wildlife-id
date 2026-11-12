@@ -2,9 +2,9 @@
 
 - **Status:** Accepted; amended 2026-11-11 (224 px, owner-approved) and 2026-11-12
   (quantisation mode, §3a)
-- **Amendment:** charter decision 2 (384 px) is superseded by §2 — parent is editing the charter;
-  until that edit lands this ADR is authoritative for the shipped input resolution.
-  §3's full-integer INT8 requirement is superseded by §3a.
+- **Amendment:** charter decision 2 (384 px) is superseded by §2 and its INT8
+  requirement by §3a; both were written into `AGENTS.md` on 2026-11-12, so charter
+  and ADR now agree.
 - **Date:** 2026-11-11
 - **Deciders:** Owner (Keung) approved the budget; Atlas authored
 - **Driver:** Charter decisions 1 (offline-first), 2 (BioCLIP vision tower + regional

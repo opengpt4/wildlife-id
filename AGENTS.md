@@ -22,9 +22,19 @@ reuse its desktop architecture.
 2. **Primary model: BioCLIP vision tower, zero-shot over the regional candidate
    set.** Text embeddings are precomputed offline, so per-photo cost on device is
    one encoder pass plus a dot product against a ~200-species matrix. Export to
-   TFLite INT8 at **224 px** (amended 2026-11-11: the paired 224-vs-384 confidence
+   TFLite at **224 px** (amended 2026-11-11: the paired 224-vs-384 confidence
    interval includes zero, 224 is the native training resolution, and it buys
    ~2.9× latency headroom).
+
+   **Quantisation: int8 weights with fp32 activations (amended 2026-11-12).**
+   Full-integer INT8 — the mode ADR 0001 originally required — was built and
+   measured at **0.68% top-1, i.e. chance** (−78.23 points); a float-I/O control
+   ruled out the input boundary, and the error compounds through the transformer
+   blocks exactly where LayerNorm/attention lose dynamic range. The TFLite
+   converter offers no per-op exemption, so keeping LayerNorm in fp32 needs QAT.
+   The shipped artifact is therefore **dynamic-range INT8, 88.1 MB, −1.36 points**
+   [−3.40, 0.00] against fp32. See ADR 0001 §3a and `docs/phase0-results.md`
+   §3c/§3d. Do not reintroduce full-integer INT8 without a QAT story.
 
    **The regional linear head was tested and dropped (2026-11-11).** A head trained
    on 3,903 permissively licensed HK photos (179 species, observer-split, leakage
@@ -46,15 +56,23 @@ reuse its desktop architecture.
 7. **Mobile stack:** React Native (bare, not Expo) + `react-native-vision-camera`
    + `react-native-fast-tflite`, to reuse the TypeScript work from
    `bird-photo-manager`.
+8. **Artifacts are built in CI, not on the dev Mac (2026-11-12).** `tensorflow`
+   and `onnx` cannot coexist in one process on macOS, so TFLite conversion runs in
+   GitHub Actions (`.github/workflows/build-tflite.yml`, ~21 min, five artifacts
+   per run) and is scored locally with `ml/export/eval_tflite.py`. The repo is
+   public because private-repo runners have 2 vCPU / 8 GB and OOM during
+   conversion; public runners have 4 vCPU / 16 GB. **Conversion is not
+   bit-reproducible** — identify an artifact by its score and manifest, not by
+   hash alone.
 
 ## Repository layout
 
 ```
-app/      React Native application
-server/   FastAPI service (optional escalation path)
+app/      React Native application          (empty — no feature work yet)
+server/   FastAPI service                   (empty — optional escalation path)
 ml/       model export, quantization, evaluation harness
 data/     species lists, benchmark photo sets, iNat ingest output
-docs/     ADRs, API contract, data model, decisions log
+docs/     ADRs, phase 0 results, data model, decisions log
 ```
 
 ## Working agreements
@@ -71,16 +89,55 @@ docs/     ADRs, API contract, data model, decisions log
 
 ## Status
 
-Phase 0 — not started. The five spike questions:
+**Phase 0 is measured, not finished.** Six of eight gates have a verdict, two need
+hardware that is not attached, and no feature work has started — `app/` and
+`server/` are empty on purpose.
 
-1. BioCLIP INT8 latency on target devices.
-2. Quantization accuracy delta (fp32 vs INT8) on a 200-photo eval set.
-3. iNaturalist data availability for HK butterflies and birds.
-4. RN camera + fast-tflite compatibility.
-5. How much does the regional prior actually lift top-1 accuracy?
+Shipping candidate: BioCLIP ViT-B/16 vision tower, 224 px, dynamic-range INT8,
+**88.1 MB**, zero-shot over the 200-species HK candidate set.
+
+| Gate | Target | Measured | Status |
+|---|---|---|---|
+| G1 top-1 | ≥ 70% | 77.55% | pass |
+| G2 common-20 | ≥ 85% | 73.3% | **fail** — v2 target, needs data not tuning |
+| G3 top-5 | ≥ 90% | 91.16% | pass |
+| G4 INT8 vs fp32 | ≤ 2.0 pts | −1.36 pts [−3.40, 0.00] | pass, thin margin |
+| G5 latency p50 | ≤ 1000 ms | not measured | **blocked: no Android device** |
+| G6 iPhone latency | ≤ 500 ms | not run | deferred, no Xcode here |
+| G7 artifact | ≤ 120 MB | 88.1 MB | pass |
+
+The five spike questions, answered:
+
+1. **INT8 latency on target devices — not answered.** Needs a phone (G5). This is
+   the only remaining gate that can invalidate the architecture: weight-only
+   quantisation keeps activations in fp32, so the memory-traffic saving that made
+   the budget plausible is gone. ADR 0001 §5's arithmetic already predicted CPU
+   failure at 224 px.
+2. **Quantisation delta — answered.** Full-integer INT8 is unusable (0.68% top-1,
+   −78.23 pts); dynamic-range INT8 costs −1.36 pts at 88.1 MB; float16 is
+   numerically free but 172.5 MB, which breaches G7. `docs/phase0-results.md`
+   §3c/§3d.
+3. **iNaturalist availability — answered.** 828 research-grade HK species in the
+   checklist (562 birds, 266 butterflies); a 200-species candidate list whose
+   thinnest member still has 346 HK observations; 3,903 permissively licensed
+   photos for the head experiment.
+4. **RN camera + fast-tflite compatibility — not started.** Also blocked on the
+   device; `react-native-fast-tflite` is still an untested choice.
+5. **Regional prior — answered, and it stays.** +9.5 points top-1 (77.5% at K=200
+   vs 68.0% at K=828). Separately, the prompt template is worth +24 points, so the
+   region pack must ship the exact template with the embeddings.
+
+Where the numbers live: `docs/phase0-results.md` (all gates, methodology traps,
+§8 for the head), `docs/adr/0001-model-artifact-and-latency-budget.md` (artifact and
+latency budget, §3a for quantisation), `data/eval/results/*.json` (raw scores),
+`.github/workflows/build-tflite.yml` (how the artifacts are built).
 
 ## Open questions for the owner
 
+- **Which device, and when?** G5 needs one Android phone of the SD695 / Pixel 6a
+  class; every remaining engineering decision is downstream of that number.
+- **88.1 MB dynamic-range INT8, or renegotiate G7 for 172.5 MB float16?** float16
+  reproduces fp32 predictions exactly, which is the only reason to consider it.
 - Target minimum OS versions and the primary test device.
 - Whether identification history syncs across devices in v1.
 - Language: Traditional Chinese + English, or English only at launch.
