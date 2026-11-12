@@ -1,8 +1,10 @@
 # ADR 0001 — On-device model artifact and latency budget
 
-- **Status:** Accepted; amended 2026-11-11 (224 px, owner-approved) — revision still requires numbers
+- **Status:** Accepted; amended 2026-11-11 (224 px, owner-approved) and 2026-11-12
+  (quantisation mode, §3a)
 - **Amendment:** charter decision 2 (384 px) is superseded by §2 — parent is editing the charter;
-  until that edit lands this ADR is authoritative for the shipped input resolution
+  until that edit lands this ADR is authoritative for the shipped input resolution.
+  §3's full-integer INT8 requirement is superseded by §3a.
 - **Date:** 2026-11-11
 - **Deciders:** Owner (Keung) approved the budget; Atlas authored
 - **Driver:** Charter decisions 1 (offline-first), 2 (BioCLIP vision tower + regional
@@ -87,10 +89,10 @@ penalty measured at a resolution we do not ship would answer the wrong question.
 
 ### 3. Export: PyTorch → ONNX (opset 17) → TFLite, full-integer INT8
 
-- Static, per-channel weight quantization; activation ranges calibrated on
+- ~~Static, per-channel weight quantization; activation ranges calibrated on
   **300 HK observation photos**, disjoint from the eval set. Dynamic-range INT8 is
   not acceptable for a ViT: quantizing activations at runtime loses more than it
-  saves on attention blocks.
+  saves on attention blocks.~~ **Superseded 2026-11-12 — see §3a.
 - Fallback ladder if G4 (≤ 2.0 points) fails, in order: (a) per-channel full-int8
   with a larger, better-stratified calibration set; (b) `float16` weights +
   int8 activations hybrid; (c) TFLite `float16` entirely (~172 MB — **fails G7**,
@@ -99,6 +101,38 @@ penalty measured at a resolution we do not ship would answer the wrong question.
   (LayerNorm / GELU / softmax are the risk ops): ExecuTorch, then ONNX Runtime
   Mobile. iOS later gets Core ML. Switching backends is a Phase 1 decision and
   must not be taken silently.
+
+### 3a. Amendment 2026-11-12 — the shipped artifact is dynamic-range INT8
+
+The requirement above was written before full-integer INT8 had been measured, on
+the assumption that activation quantisation would cost a few accuracy points. It
+costs all of them. Measured on the real artifacts, 147-photo eval set, paired
+(`docs/phase0-results.md` §3c, §3d):
+
+| Mode | size | top-1 | Δ vs fp32 |
+|---|---|---|---|
+| full-integer INT8 (int8 I/O) | 88.6 MB | 0.68% | **−78.23** |
+| full-integer INT8 (float I/O) | 88.6 MB | 0.00% | **−78.91** |
+| **dynamic range (int8 weights)** | **88.1 MB** | **77.55%** | **−1.36** [−3.40, 0.00] |
+| float16 | 172.5 MB | 78.91% | +0.00 |
+
+**Decision: the shipped artifact is dynamic-range INT8** — int8 weights, fp32
+activations, 88.1 MB. G4 (−1.36 pts) and G7 (88.1 MB) both pass on it.
+
+Two consequences, stated plainly rather than discovered later:
+
+1. **This is a latency risk, not an accuracy one.** Keeping activations in fp32
+   gives up exactly the memory-traffic saving that motivated full-integer INT8, and
+   §5's arithmetic was already predicting failure on CPU-only hardware at 224 px.
+   G5 becomes the gate that decides whether the product ships, and it needs a
+   device.
+2. **The fallback ladder above was mis-specified.** (a) "per-channel full-int8 with
+   better calibration" and (b) "float16 weights + int8 activations" are not
+   expressible in the TFLite converter; it offers dynamic range, float16 and full
+   integer, and no per-op exemption. Selective quantisation without QAT is not an
+   option this toolchain has. (c) float16 at 172.5 MB is measured and breaches G7
+   by 52 MB — an owner decision if accuracy must be bit-exact. (d) distillation is
+   unchanged as the Phase 1 escape hatch.
 
 ### 4. Latency budget (G5: p50 ≤ 1000 ms, SD695 / Pixel 6a class)
 

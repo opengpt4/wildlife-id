@@ -1,0 +1,953 @@
+{
+  "config": {
+    "label": "int8_dynamic",
+    "tflite": "/Users/Keung/wildlife-id/data/eval/artifacts/vision_tower_224_int8_dynamic.tflite",
+    "tflite_sha256": "6ecf8cb9e8a490a9babdfb4a2c9727cc507ebbf4e58c15fced9de3b26e09332e",
+    "tflite_size_mb": 88.1,
+    "resolution": 224,
+    "n_images": 147,
+    "prompt_list_sha256": "8c7367547028a593a09ee21571d4ff62680c224cd53dae37d4ddfbd2d8549ef1",
+    "prompt_template": "a photo of {name}",
+    "manifest_sha256": "b029f55c7495fbf30c16928d25e5460d3de389a4cf42970b59881bf33271fd24",
+    "host_invoke_ms_p50": 20.3,
+    "host_note": "host CPU ms is NOT gate G5; it only shows relative cost"
+  },
+  "overall": {
+    "n": 147,
+    "top1": 77.55,
+    "top1_ci95": [
+      70.2,
+      83.5
+    ],
+    "top5": 91.16,
+    "top5_ci95": [
+      85.5,
+      94.8
+    ]
+  },
+  "by_group": {
+    "bird": {
+      "n": 72,
+      "top1": 76.39,
+      "top1_ci95": [
+        65.4,
+        84.7
+      ],
+      "top5": 91.67,
+      "top5_ci95": [
+        83.0,
+        96.1
+      ]
+    },
+    "butterfly": {
+      "n": 75,
+      "top1": 78.67,
+      "top1_ci95": [
+        68.1,
+        86.4
+      ],
+      "top5": 90.67,
+      "top5_ci95": [
+        82.0,
+        95.4
+      ]
+    }
+  },
+  "common20": {
+    "n": 60,
+    "top1": 73.33,
+    "top1_ci95": [
+      61.0,
+      82.9
+    ],
+    "top5": 93.33,
+    "top5_ci95": [
+      84.1,
+      97.4
+    ]
+  },
+  "predictions": [
+    {
+      "file": "images/346550955_631730125.jpg",
+      "true": "Delias pasithoe",
+      "top1": "Delias pasithoe",
+      "correct_top1": true
+    },
+    {
+      "file": "images/405495732_744821347.jpg",
+      "true": "Delias pasithoe",
+      "top1": "Delias pasithoe",
+      "correct_top1": true
+    },
+    {
+      "file": "images/413971461_762002094.jpg",
+      "true": "Delias pasithoe",
+      "top1": "Delias pasithoe",
+      "correct_top1": true
+    },
+    {
+      "file": "images/367006921_670196962.jpg",
+      "true": "Papilio polytes",
+      "top1": "Papilio xuthus",
+      "correct_top1": false
+    },
+    {
+      "file": "images/340571323_619797007.jpg",
+      "true": "Papilio polytes",
+      "top1": "Papilio polytes",
+      "correct_top1": true
+    },
+    {
+      "file": "images/395754550_725686237.jpg",
+      "true": "Papilio polytes",
+      "top1": "Papilio polytes",
+      "correct_top1": true
+    },
+    {
+      "file": "images/396104669_726378499.jpg",
+      "true": "Mycalesis mineus",
+      "top1": "Mycalesis mineus",
+      "correct_top1": true
+    },
+    {
+      "file": "images/411972302_757959091.jpg",
+      "true": "Mycalesis mineus",
+      "top1": "Mycalesis mineus",
+      "correct_top1": true
+    },
+    {
+      "file": "images/355119200_647749019.jpg",
+      "true": "Mycalesis mineus",
+      "top1": "Mycalesis mineus",
+      "correct_top1": true
+    },
+    {
+      "file": "images/410740005_755465800.jpg",
+      "true": "Pseudozizeeria maha",
+      "top1": "Pseudozizeeria maha",
+      "correct_top1": true
+    },
+    {
+      "file": "images/332839970_604133508.jpg",
+      "true": "Pseudozizeeria maha",
+      "top1": "Zizina otis",
+      "correct_top1": false
+    },
+    {
+      "file": "images/366973207_670135274.jpg",
+      "true": "Pseudozizeeria maha",
+      "top1": "Pseudozizeeria maha",
+      "correct_top1": true
+    },
+    {
+      "file": "images/413746206_761553364.jpg",
+      "true": "Hypolimnas bolina",
+      "top1": "Anas acuta",
+      "correct_top1": false
+    },
+    {
+      "file": "images/393738972_721736823.jpg",
+      "true": "Hypolimnas bolina",
+      "top1": "Hypolimnas bolina",
+      "correct_top1": true
+    },
+    {
+      "file": "images/367012920_670206299.jpg",
+      "true": "Hypolimnas bolina",
+      "top1": "Hypolimnas bolina",
+      "correct_top1": true
+    },
+    {
+      "file": "images/367352952_670859029.jpg",
+      "true": "Euploea midamus",
+      "top1": "Euploea midamus",
+      "correct_top1": true
+    },
+    {
+      "file": "images/386161492_707022120.jpg",
+      "true": "Euploea midamus",
+      "top1": "Euploea core",
+      "correct_top1": false
+    },
+    {
+      "file": "images/332727466_603903244.jpg",
+      "true": "Euploea midamus",
+      "top1": "Euploea midamus",
+      "correct_top1": true
+    },
+    {
+      "file": "images/336905169_612329437.jpg",
+      "true": "Zemeros flegyas",
+      "top1": "Melanitis phedima",
+      "correct_top1": false
+    },
+    {
+      "file": "images/413974757_762008953.jpg",
+      "true": "Zemeros flegyas",
+      "top1": "Zemeros flegyas",
+      "correct_top1": true
+    },
+    {
+      "file": "images/412719133_759479220.jpg",
+      "true": "Zemeros flegyas",
+      "top1": "Zemeros flegyas",
+      "correct_top1": true
+    },
+    {
+      "file": "images/337071828_612672653.jpg",
+      "true": "Ideopsis similis",
+      "top1": "Ideopsis similis",
+      "correct_top1": true
+    },
+    {
+      "file": "images/346592330_631810891.jpg",
+      "true": "Ideopsis similis",
+      "top1": "Ideopsis similis",
+      "correct_top1": true
+    },
+    {
+      "file": "images/414088573_762236535.jpg",
+      "true": "Ideopsis similis",
+      "top1": "Ideopsis similis",
+      "correct_top1": true
+    },
+    {
+      "file": "images/368588134_673224537.jpg",
+      "true": "Abisara echerius",
+      "top1": "Abisara echerius",
+      "correct_top1": true
+    },
+    {
+      "file": "images/374937306_685364939.jpg",
+      "true": "Abisara echerius",
+      "top1": "Abisara echerius",
+      "correct_top1": true
+    },
+    {
+      "file": "images/411987388_757986350.jpg",
+      "true": "Abisara echerius",
+      "top1": "Abisara echerius",
+      "correct_top1": true
+    },
+    {
+      "file": "images/356003140_649215562.jpg",
+      "true": "Junonia lemonias",
+      "top1": "Junonia lemonias",
+      "correct_top1": true
+    },
+    {
+      "file": "images/346351804_631337459.jpg",
+      "true": "Junonia lemonias",
+      "top1": "Junonia lemonias",
+      "correct_top1": true
+    },
+    {
+      "file": "images/413766826_761588808.jpg",
+      "true": "Junonia lemonias",
+      "top1": "Junonia lemonias",
+      "correct_top1": true
+    },
+    {
+      "file": "images/376980172_689320793.jpg",
+      "true": "Lexias pardalis",
+      "top1": "Lexias pardalis",
+      "correct_top1": true
+    },
+    {
+      "file": "images/412166446_758356181.jpg",
+      "true": "Lexias pardalis",
+      "top1": "Lexias pardalis",
+      "correct_top1": true
+    },
+    {
+      "file": "images/331540853_601471260.jpg",
+      "true": "Lexias pardalis",
+      "top1": "Lexias pardalis",
+      "correct_top1": true
+    },
+    {
+      "file": "images/411990592_757993335.jpg",
+      "true": "Papilio agenor",
+      "top1": "Cacatua sulphurea",
+      "correct_top1": false
+    },
+    {
+      "file": "images/340412410_619476238.jpg",
+      "true": "Papilio agenor",
+      "top1": "Papilio protenor",
+      "correct_top1": false
+    },
+    {
+      "file": "images/377016776_689395990.jpg",
+      "true": "Papilio agenor",
+      "top1": "Papilio helenus",
+      "correct_top1": false
+    },
+    {
+      "file": "images/411317167_756649858.jpg",
+      "true": "Ypthima baldus",
+      "top1": "Ypthima baldus",
+      "correct_top1": true
+    },
+    {
+      "file": "images/376860437_689092057.jpg",
+      "true": "Ypthima baldus",
+      "top1": "Ypthima baldus",
+      "correct_top1": true
+    },
+    {
+      "file": "images/346329335_631293741.jpg",
+      "true": "Ypthima baldus",
+      "top1": "Ypthima baldus",
+      "correct_top1": true
+    },
+    {
+      "file": "images/356792181_650684061.jpg",
+      "true": "Danaus genutia",
+      "top1": "Danaus genutia",
+      "correct_top1": true
+    },
+    {
+      "file": "images/396013845_726196916.jpg",
+      "true": "Danaus genutia",
+      "top1": "Danaus genutia",
+      "correct_top1": true
+    },
+    {
+      "file": "images/375246782_685965320.jpg",
+      "true": "Danaus genutia",
+      "top1": "Tirumala limniace",
+      "correct_top1": false
+    },
+    {
+      "file": "images/339752478_618120499.jpg",
+      "true": "Catopsilia pomona",
+      "top1": "Catopsilia pomona",
+      "correct_top1": true
+    },
+    {
+      "file": "images/412436049_758903523.jpg",
+      "true": "Catopsilia pomona",
+      "top1": "Catopsilia pomona",
+      "correct_top1": true
+    },
+    {
+      "file": "images/396059254_726288240.jpg",
+      "true": "Catopsilia pomona",
+      "top1": "Catopsilia pomona",
+      "correct_top1": true
+    },
+    {
+      "file": "images/404213360_742203782.jpg",
+      "true": "Neptis hylas",
+      "top1": "Phaedyma columella",
+      "correct_top1": false
+    },
+    {
+      "file": "images/340412583_619476718.jpg",
+      "true": "Neptis hylas",
+      "top1": "Neptis hylas",
+      "correct_top1": true
+    },
+    {
+      "file": "images/357051848_651181260.jpg",
+      "true": "Neptis hylas",
+      "top1": "Neptis hylas",
+      "correct_top1": true
+    },
+    {
+      "file": "images/346329251_631293500.jpg",
+      "true": "Papilio paris",
+      "top1": "Papilio paris",
+      "correct_top1": true
+    },
+    {
+      "file": "images/336627868_611766839.jpg",
+      "true": "Papilio paris",
+      "top1": "Papilio paris",
+      "correct_top1": true
+    },
+    {
+      "file": "images/393698606_721656964.jpg",
+      "true": "Papilio paris",
+      "top1": "Papilio paris",
+      "correct_top1": true
+    },
+    {
+      "file": "images/413937002_761930880.jpg",
+      "true": "Acytolepis puspa",
+      "top1": "Acytolepis puspa",
+      "correct_top1": true
+    },
+    {
+      "file": "images/411984772_757986841.jpg",
+      "true": "Acytolepis puspa",
+      "top1": "Acytolepis puspa",
+      "correct_top1": true
+    },
+    {
+      "file": "images/336702820_611919743.jpg",
+      "true": "Acytolepis puspa",
+      "top1": "Papilio protenor",
+      "correct_top1": false
+    },
+    {
+      "file": "images/356793557_650686123.jpg",
+      "true": "Junonia iphita",
+      "top1": "Abisara echerius",
+      "correct_top1": false
+    },
+    {
+      "file": "images/368588090_673224393.jpg",
+      "true": "Junonia iphita",
+      "top1": "Melanitis phedima",
+      "correct_top1": false
+    },
+    {
+      "file": "images/385855424_706472716.jpg",
+      "true": "Junonia iphita",
+      "top1": "Columba livia",
+      "correct_top1": false
+    },
+    {
+      "file": "images/413299812_760652082.jpg",
+      "true": "Tirumala limniace",
+      "top1": "Tirumala limniace",
+      "correct_top1": true
+    },
+    {
+      "file": "images/403766042_741391755.jpg",
+      "true": "Tirumala limniace",
+      "top1": "Ideopsis similis",
+      "correct_top1": false
+    },
+    {
+      "file": "images/340554818_619763985.jpg",
+      "true": "Tirumala limniace",
+      "top1": "Tirumala limniace",
+      "correct_top1": true
+    },
+    {
+      "file": "images/340567873_619790934.jpg",
+      "true": "Graphium agamemnon",
+      "top1": "Graphium agamemnon",
+      "correct_top1": true
+    },
+    {
+      "file": "images/374607446_684731044.jpg",
+      "true": "Graphium agamemnon",
+      "top1": "Graphium agamemnon",
+      "correct_top1": true
+    },
+    {
+      "file": "images/384823971_704469141.jpg",
+      "true": "Graphium agamemnon",
+      "top1": "Graphium agamemnon",
+      "correct_top1": true
+    },
+    {
+      "file": "images/385171323_705136241.jpg",
+      "true": "Cupha erymanthis",
+      "top1": "Hypolimnas bolina",
+      "correct_top1": false
+    },
+    {
+      "file": "images/395703605_725584191.jpg",
+      "true": "Cupha erymanthis",
+      "top1": "Cupha erymanthis",
+      "correct_top1": true
+    },
+    {
+      "file": "images/375148503_685777570.jpg",
+      "true": "Cupha erymanthis",
+      "top1": "Cupha erymanthis",
+      "correct_top1": true
+    },
+    {
+      "file": "images/396014862_726198953.jpg",
+      "true": "Graphium sarpedon",
+      "top1": "Graphium sarpedon",
+      "correct_top1": true
+    },
+    {
+      "file": "images/369476606_674898010.jpg",
+      "true": "Graphium sarpedon",
+      "top1": "Graphium sarpedon",
+      "correct_top1": true
+    },
+    {
+      "file": "images/345652901_629960234.jpg",
+      "true": "Graphium sarpedon",
+      "top1": "Graphium sarpedon",
+      "correct_top1": true
+    },
+    {
+      "file": "images/403866412_741583324.jpg",
+      "true": "Parantica aglea",
+      "top1": "Parantica aglea",
+      "correct_top1": true
+    },
+    {
+      "file": "images/335938061_610380561.jpg",
+      "true": "Parantica aglea",
+      "top1": "Parantica aglea",
+      "correct_top1": true
+    },
+    {
+      "file": "images/346554387_631738355.jpg",
+      "true": "Parantica aglea",
+      "top1": "Parantica aglea",
+      "correct_top1": true
+    },
+    {
+      "file": "images/346329460_631294098.jpg",
+      "true": "Symbrenthia lilaea",
+      "top1": "Symbrenthia lilaea",
+      "correct_top1": true
+    },
+    {
+      "file": "images/332888264_604233703.jpg",
+      "true": "Symbrenthia lilaea",
+      "top1": "Symbrenthia lilaea",
+      "correct_top1": true
+    },
+    {
+      "file": "images/366975346_670139685.jpg",
+      "true": "Symbrenthia lilaea",
+      "top1": "Symbrenthia lilaea",
+      "correct_top1": true
+    },
+    {
+      "file": "images/387788419_710143141.jpg",
+      "true": "Spilopelia chinensis",
+      "top1": "Streptopelia decaocto",
+      "correct_top1": false
+    },
+    {
+      "file": "images/340585702_619824562.jpg",
+      "true": "Spilopelia chinensis",
+      "top1": "Spilopelia chinensis",
+      "correct_top1": true
+    },
+    {
+      "file": "images/413989618_762038716.jpg",
+      "true": "Spilopelia chinensis",
+      "top1": "Spilopelia chinensis",
+      "correct_top1": true
+    },
+    {
+      "file": "images/337420336_613385922.jpg",
+      "true": "Pycnonotus jocosus",
+      "top1": "Orthotomus sutorius",
+      "correct_top1": false
+    },
+    {
+      "file": "images/346147380_630928728.jpg",
+      "true": "Pycnonotus jocosus",
+      "top1": "Pachliopta aristolochiae",
+      "correct_top1": false
+    },
+    {
+      "file": "images/396650277_727403995.jpg",
+      "true": "Pycnonotus jocosus",
+      "top1": "Pycnonotus sinensis",
+      "correct_top1": false
+    },
+    {
+      "file": "images/336789033_612095860.jpg",
+      "true": "Passer montanus",
+      "top1": "Psittacula eupatria",
+      "correct_top1": false
+    },
+    {
+      "file": "images/346335838_631306528.jpg",
+      "true": "Passer montanus",
+      "top1": "Psittacula eupatria",
+      "correct_top1": false
+    },
+    {
+      "file": "images/337420327_613385899.jpg",
+      "true": "Passer montanus",
+      "top1": "Passer montanus",
+      "correct_top1": true
+    },
+    {
+      "file": "images/411990524_757993177.jpg",
+      "true": "Gracupica nigricollis",
+      "top1": "Gracupica nigricollis",
+      "correct_top1": true
+    },
+    {
+      "file": "images/357051920_651181368.jpg",
+      "true": "Gracupica nigricollis",
+      "top1": "Gracupica nigricollis",
+      "correct_top1": true
+    },
+    {
+      "file": "images/339248546_617097011.jpg",
+      "true": "Gracupica nigricollis",
+      "top1": "Gracupica nigricollis",
+      "correct_top1": true
+    },
+    {
+      "file": "images/337420332_613385903.jpg",
+      "true": "Copsychus saularis",
+      "top1": "Lanius schach",
+      "correct_top1": false
+    },
+    {
+      "file": "images/395841945_725855065.jpg",
+      "true": "Copsychus saularis",
+      "top1": "Copsychus saularis",
+      "correct_top1": true
+    },
+    {
+      "file": "images/385608421_705957731.jpg",
+      "true": "Copsychus saularis",
+      "top1": "Zizina otis",
+      "correct_top1": false
+    },
+    {
+      "file": "images/404741947_743320121.jpg",
+      "true": "Egretta garzetta",
+      "top1": "Ardea alba",
+      "correct_top1": false
+    },
+    {
+      "file": "images/413978384_762015868.jpg",
+      "true": "Egretta garzetta",
+      "top1": "Ardea intermedia",
+      "correct_top1": false
+    },
+    {
+      "file": "images/346311526_631259235.jpg",
+      "true": "Egretta garzetta",
+      "top1": "Egretta garzetta",
+      "correct_top1": true
+    },
+    {
+      "file": "images/412338365_758706512.jpg",
+      "true": "Milvus migrans",
+      "top1": "Milvus migrans",
+      "correct_top1": true
+    },
+    {
+      "file": "images/340260661_619169624.jpg",
+      "true": "Milvus migrans",
+      "top1": "Milvus migrans",
+      "correct_top1": true
+    },
+    {
+      "file": "images/346083578_630802364.jpg",
+      "true": "Milvus migrans",
+      "top1": "Milvus migrans",
+      "correct_top1": true
+    },
+    {
+      "file": "images/396049006_726267599.jpg",
+      "true": "Nycticorax nycticorax",
+      "top1": "Nycticorax nycticorax",
+      "correct_top1": true
+    },
+    {
+      "file": "images/345603313_629861060.jpg",
+      "true": "Nycticorax nycticorax",
+      "top1": "Nycticorax nycticorax",
+      "correct_top1": true
+    },
+    {
+      "file": "images/368346635_672751650.jpg",
+      "true": "Nycticorax nycticorax",
+      "top1": "Nycticorax nycticorax",
+      "correct_top1": true
+    },
+    {
+      "file": "images/411987957_757985903.jpg",
+      "true": "Pycnonotus sinensis",
+      "top1": "Pycnonotus sinensis",
+      "correct_top1": true
+    },
+    {
+      "file": "images/369345008_674654608.jpg",
+      "true": "Pycnonotus sinensis",
+      "top1": "Pycnonotus sinensis",
+      "correct_top1": true
+    },
+    {
+      "file": "images/339248508_617096847.jpg",
+      "true": "Pycnonotus sinensis",
+      "top1": "Prinia flaviventris",
+      "correct_top1": false
+    },
+    {
+      "file": "images/346304140_631243312.jpg",
+      "true": "Urocissa erythroryncha",
+      "top1": "Urocissa erythroryncha",
+      "correct_top1": true
+    },
+    {
+      "file": "images/411917247_757852442.jpg",
+      "true": "Urocissa erythroryncha",
+      "top1": "Urocissa erythroryncha",
+      "correct_top1": true
+    },
+    {
+      "file": "images/413981598_762022768.jpg",
+      "true": "Urocissa erythroryncha",
+      "top1": "Urocissa erythroryncha",
+      "correct_top1": true
+    },
+    {
+      "file": "images/376686296_688753697.jpg",
+      "true": "Ardea alba",
+      "top1": "Ardea alba",
+      "correct_top1": true
+    },
+    {
+      "file": "images/368346628_672751543.jpg",
+      "true": "Ardea alba",
+      "top1": "Ardea alba",
+      "correct_top1": true
+    },
+    {
+      "file": "images/392037069_718405548.jpg",
+      "true": "Ardea alba",
+      "top1": "Ardea intermedia",
+      "correct_top1": false
+    },
+    {
+      "file": "images/413832235_761710599.jpg",
+      "true": "Pterorhinus perspicillatus",
+      "top1": "Pterorhinus perspicillatus",
+      "correct_top1": true
+    },
+    {
+      "file": "images/387832593_710228794.jpg",
+      "true": "Pterorhinus perspicillatus",
+      "top1": "Pycnonotus sinensis",
+      "correct_top1": false
+    },
+    {
+      "file": "images/396650250_727403466.jpg",
+      "true": "Pterorhinus perspicillatus",
+      "top1": "Pterorhinus perspicillatus",
+      "correct_top1": true
+    },
+    {
+      "file": "images/411990532_757993201.jpg",
+      "true": "Ardeola bacchus",
+      "top1": "Ardeola bacchus",
+      "correct_top1": true
+    },
+    {
+      "file": "images/389954808_714357117.jpg",
+      "true": "Ardeola bacchus",
+      "top1": "Ardeola bacchus",
+      "correct_top1": true
+    },
+    {
+      "file": "images/376855067_689080639.jpg",
+      "true": "Ardeola bacchus",
+      "top1": "Ardeola bacchus",
+      "correct_top1": true
+    },
+    {
+      "file": "images/413682285_761425393.jpg",
+      "true": "Motacilla alba",
+      "top1": "Motacilla alba",
+      "correct_top1": true
+    },
+    {
+      "file": "images/394347018_722938943.jpg",
+      "true": "Motacilla alba",
+      "top1": "Motacilla alba",
+      "correct_top1": true
+    },
+    {
+      "file": "images/412122640_758266562.jpg",
+      "true": "Motacilla alba",
+      "top1": "Motacilla alba",
+      "correct_top1": true
+    },
+    {
+      "file": "images/345866241_630380085.jpg",
+      "true": "Acridotheres cristatellus",
+      "top1": "Acridotheres cristatellus",
+      "correct_top1": true
+    },
+    {
+      "file": "images/331900464_602205146.jpg",
+      "true": "Acridotheres cristatellus",
+      "top1": "Acridotheres cristatellus",
+      "correct_top1": true
+    },
+    {
+      "file": "images/396073855_726317288.jpg",
+      "true": "Acridotheres cristatellus",
+      "top1": "Acridotheres cristatellus",
+      "correct_top1": true
+    },
+    {
+      "file": "images/411926362_757870287.jpg",
+      "true": "Ardea cinerea",
+      "top1": "Ardea cinerea",
+      "correct_top1": true
+    },
+    {
+      "file": "images/336951229_612423252.jpg",
+      "true": "Ardea cinerea",
+      "top1": "Ardea cinerea",
+      "correct_top1": true
+    },
+    {
+      "file": "images/341747124_622200504.jpg",
+      "true": "Ardea cinerea",
+      "top1": "Ardea cinerea",
+      "correct_top1": true
+    },
+    {
+      "file": "images/395679759_725536283.jpg",
+      "true": "Himantopus himantopus",
+      "top1": "Himantopus himantopus",
+      "correct_top1": true
+    },
+    {
+      "file": "images/356769790_650644415.jpg",
+      "true": "Himantopus himantopus",
+      "top1": "Himantopus himantopus",
+      "correct_top1": true
+    },
+    {
+      "file": "images/346311143_631258546.jpg",
+      "true": "Himantopus himantopus",
+      "top1": "Himantopus himantopus",
+      "correct_top1": true
+    },
+    {
+      "file": "images/345893870_630431618.jpg",
+      "true": "Orthotomus sutorius",
+      "top1": "Orthotomus sutorius",
+      "correct_top1": true
+    },
+    {
+      "file": "images/377129324_689613240.jpg",
+      "true": "Orthotomus sutorius",
+      "top1": "Orthotomus sutorius",
+      "correct_top1": true
+    },
+    {
+      "file": "images/412324519_758679168.jpg",
+      "true": "Orthotomus sutorius",
+      "top1": "Orthotomus sutorius",
+      "correct_top1": true
+    },
+    {
+      "file": "images/387489217_709565268.jpg",
+      "true": "Zosterops simplex",
+      "top1": "Zosterops simplex",
+      "correct_top1": true
+    },
+    {
+      "file": "images/405500364_744834303.jpg",
+      "true": "Zosterops simplex",
+      "top1": "Zosterops simplex",
+      "correct_top1": true
+    },
+    {
+      "file": "images/413766824_761588792.jpg",
+      "true": "Zosterops simplex",
+      "top1": "Zosterops simplex",
+      "correct_top1": true
+    },
+    {
+      "file": "images/205457978_363291103.jpg",
+      "true": "Phoenicurus auroreus",
+      "top1": "Phoenicurus auroreus",
+      "correct_top1": true
+    },
+    {
+      "file": "images/359878327_656642505.jpg",
+      "true": "Phoenicurus auroreus",
+      "top1": "Phoenicurus auroreus",
+      "correct_top1": true
+    },
+    {
+      "file": "images/412240982_758506218.jpg",
+      "true": "Phoenicurus auroreus",
+      "top1": "Phoenicurus auroreus",
+      "correct_top1": true
+    },
+    {
+      "file": "images/346328376_631425925.jpg",
+      "true": "Myophonus caeruleus",
+      "top1": "Myophonus caeruleus",
+      "correct_top1": true
+    },
+    {
+      "file": "images/412151809_758325409.jpg",
+      "true": "Myophonus caeruleus",
+      "top1": "Corvus macrorhynchos",
+      "correct_top1": false
+    },
+    {
+      "file": "images/384379813_704321541.jpg",
+      "true": "Myophonus caeruleus",
+      "top1": "Acridotheres tristis",
+      "correct_top1": false
+    },
+    {
+      "file": "images/339243891_617088196.jpg",
+      "true": "Parus cinereus",
+      "top1": "Parus cinereus",
+      "correct_top1": true
+    },
+    {
+      "file": "images/365365510_667067592.jpg",
+      "true": "Parus cinereus",
+      "top1": "Parus cinereus",
+      "correct_top1": true
+    },
+    {
+      "file": "images/383699007_702293012.jpg",
+      "true": "Parus cinereus",
+      "top1": "Nycticorax nycticorax",
+      "correct_top1": false
+    },
+    {
+      "file": "images/404412036_742672690.jpg",
+      "true": "Eudynamys scolopaceus",
+      "top1": "Eudynamys scolopaceus",
+      "correct_top1": true
+    },
+    {
+      "file": "images/345893880_630432063.jpg",
+      "true": "Eudynamys scolopaceus",
+      "top1": "Eudynamys scolopaceus",
+      "correct_top1": true
+    },
+    {
+      "file": "images/340559814_619774300.jpg",
+      "true": "Eudynamys scolopaceus",
+      "top1": "Eudynamys scolopaceus",
+      "correct_top1": true
+    },
+    {
+      "file": "images/340283331_619208684.jpg",
+      "true": "Phalacrocorax carbo",
+      "top1": "Phalacrocorax carbo",
+      "correct_top1": true
+    },
+    {
+      "file": "images/223924627_396816493.jpg",
+      "true": "Phalacrocorax carbo",
+      "top1": "Gallinula chloropus",
+      "correct_top1": false
+    },
+    {
+      "file": "images/350749242_640012833.jpg",
+      "true": "Phalacrocorax carbo",
+      "top1": "Phalacrocorax carbo",
+      "correct_top1": true
+    }
+  ]
+}

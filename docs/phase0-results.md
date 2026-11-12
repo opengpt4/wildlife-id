@@ -1,8 +1,9 @@
 # Phase 0 results — first numbers
 
-**Date:** 2026-11-11, G4/G7 on TFLite added 2026-11-12 · **Author:** Atlas ·
-**Status:** S3 complete, S2 measured to a verdict (**G4 fails on the real TFLite
-artifact**, §3c; G7 passes), S1/S4 blocked on hardware.
+**Date:** 2026-11-11; G4/G7 on real TFLite artifacts 2026-11-12 · **Author:** Atlas ·
+**Status:** S3 complete, S2 measured to a verdict — **full-integer INT8 fails G4
+(−78.23 pts, §3c) and dynamic-range INT8 passes it (−1.36 pts, §3d)**; G7 passes at
+88.1 MB. S1/S4 blocked on hardware, and G5 is now the gate that decides shipping.
 
 > **Charter note:** decision 2 (384 px) has been amended to 224 px with owner
 > approval. The edit to `AGENTS.md` is pending the parent agent; until it lands,
@@ -69,10 +70,10 @@ Paired comparison, same 147 images, same text embeddings, 4000-sample bootstrap:
 | G1 top-1 overall | ≥ 70% | **77.5%** [70.2–83.5] | **PASS** (lower CI bound sits on the gate) |
 | G2 top-1 common-20 | ≥ 85% | **75.0%** | **FAIL**, −10.0 pts |
 | G3 top-5 | ≥ 90% | **91.8%** | **PASS** |
-| G4 INT8 vs fp32 | ≤ 2.0 pts | **−78.23 pts** on the real TFLite artifact: 78.91% fp32 → 0.68% INT8 (§3c). The ONNX dynamic-range proxy had said −0.68 pts | **FAIL** — measured on the shipped format, not on a proxy |
+| G4 INT8 vs fp32 | ≤ 2.0 pts | **−1.36 pts** [−3.40…0.00] for dynamic-range INT8, 88.1 MB (§3d). Full-integer INT8 is at chance: −78.23 pts (§3c) | **PASS**, but only for the int8-*weights* artifact — full-integer INT8 is unusable |
 | G5 latency p50 | ≤ 1000 ms | not measured | no Android device attached |
 | G6 iPhone latency | ≤ 500 ms | deferred | no Xcode/Simulator on this machine |
-| G7 artifact | ≤ 120 MB | **88.6 MB** INT8 TFLite vs 344.9 MB fp32 TFLite (§3c, INT8 sha256 `fec8fc14a6fb2cc0…`) | **PASS** — measured on the actual artifact |
+| G7 artifact | ≤ 120 MB | **88.1 MB** dynamic-range INT8 (§3d, sha256 `6ecf8cb9…`) vs 344.9 MB fp32; float16 is 172.5 MB and breaches it | **PASS** — measured on the actual artifact |
 
 These are fp32 **zero-shot** numbers over a closed 200-set — a floor, not the
 product. G1/G3 are cleared by zero-shot alone; G2 is not.
@@ -116,7 +117,7 @@ torch transform → my PIL transform) moved top-1 from 77.55% to 78.91%, i.e. **
 points**. Implementation details are worth more than several of the effects we are
 trying to measure, which is why every comparison here is paired.
 
-## 3c. G4 and G7 on the real TFLite artifact — G4 **FAILS**, G7 passes
+## 3c. G4 and G7 on the real TFLite artifact — full-integer INT8 **FAILS**
 
 Built in GitHub Actions (ubuntu 26.04, python 3.11, `tensorflow-cpu 2.21.0`,
 `onnx2tf 1.28.8`, run 43124693365), full-integer INT8 — weights, activations and
@@ -129,8 +130,8 @@ cannot have moved between the fp32 reference and these runs.
 | Artifact | size | top-1 % [95% CI] | top-5 % | common-20 % | sha256 |
 |---|---|---|---|---|---|
 | TFLite fp32 | 344.9 MB | **78.91** [71.6–84.7] | 92.52 | 76.67 | `4484462e64f5e897…` |
-| TFLite INT8, int8 I/O | **88.6 MB** | **0.68** [0.1–3.8] | 2.04 | 1.67 | `fec8fc14a6fb2cc0…` |
-| TFLite INT8, float I/O (control) | **88.6 MB** | **0.00** [0.0–2.5] | 1.36 | 0.00 | `d91e680778c5d040…` |
+| TFLite INT8, int8 I/O | **88.6 MB** | **0.68** [0.1–3.8] | 4.76 | 0.00 | `97a8ebe9a0a91a7a…` |
+| TFLite INT8, float I/O (control) | **88.6 MB** | **0.68** [0.1–3.8] | 4.76 | 0.00 | `76ef1f9dfda509f7…` |
 
 Raw output: `data/eval/results/tflite_{fp32,int8,int8_floatio}.json`.
 
@@ -148,7 +149,9 @@ all doing what the reference does. What differs is quantisation, and nothing els
 
 **It is not the input boundary.** The third artifact keeps the same int8 weights
 and activations with float input and output tensors, so no input clipping can
-occur; it scores 0.00%, no better. The int8 graph itself is what loses the model.
+occur; it scores the same 0.68%, not better. The int8 graph itself is what loses
+the model. (Its earlier build scored 0.00% — the converter is not deterministic
+across builds, but every run of every variant is at chance, which is the point.)
 
 **Where it loses.** Embedding cosine against fp32 on the same images is 0.10–0.31,
 while two *different* fp32 images sit at 0.73 — the output is not collapsed to a
@@ -179,6 +182,52 @@ and the real artifact said −78.23. A proxy that quantises weights but not
 activations is not a preview of full-integer INT8; it is a measurement of a
 different experiment that happens to share a name. §3b's caveat was correct on the
 substance and far too gentle on the magnitude.
+
+## 3d. The quantisation ladder, measured — dynamic-range INT8 clears G4 and G7
+
+The ADR's ladder assumed TFLite could keep LayerNorm and softmax in fp32 while
+quantising everything else. **It cannot.** The converter exposes three modes —
+dynamic range (int8 weights, float activations), float16, and full integer — and
+no flag exempts a given op. So "selective INT8" is not reachable without QAT or
+graph surgery, and the honest move was to measure the two modes that can ship.
+
+Built in run 43132640820, same 300-photo calibration, same 147-photo eval set
+(manifest sha256 `b029f55c…`). Paired against the fp32 TFLite artifact, 4000-sample
+bootstrap over the same images:
+
+| Artifact | mode | size | top-1 % | Δ vs fp32 [95% CI] | broken / fixed | G4 | G7 |
+|---|---|---|---|---|---|---|---|
+| fp32 | — | 344.9 MB | 78.91 | — | — | — | — |
+| **INT8 dynamic** | int8 weights, fp32 activations | **88.1 MB** | **77.55** | **−1.36** [−3.40, 0.00] | 2 / 0 | **PASS** | **PASS** |
+| float16 | fp16 weights, fp32 activations | 172.5 MB | 78.91 | +0.00 [+0.00, +0.00] | 0 / 0 | PASS | **FAIL** (172.5 > 120) |
+| INT8 full-integer | int8 weights + activations | 88.6 MB | 0.68 | −78.23 [−84.35, −71.43] | 115 / 0 | FAIL | pass |
+| INT8 full-integer, float I/O (control) | as above, float boundary | 88.6 MB | 0.68 | −78.23 [−84.35, −71.43] | 115 / 0 | FAIL | pass |
+
+All five artifacts come from one build; raw output in
+`data/eval/results/tflite_{fp32,int8_dynamic,fp16,int8,int8_floatio}.json`.
+
+**What this settles.** Full-integer INT8 is not a viable artifact for this model
+post-training, and no amount of retrying the converter will change that. Dynamic
+range — int8 weights, float activations, 88.1 MB — costs **1.36 points**; its CI
+(−3.40…0.00) does not exclude a loss worse than the 2.0-point budget, so this is a
+pass with a thin margin, not a comfortable one. It **clears G4 and G7 on the
+artifact that would ship**. float16 is numerically free (0.00 points,
+byte-identical predictions) and 52 MB too large; that is a size decision for the
+owner, not an accuracy one.
+
+**What it costs.** Dynamic range keeps activations in fp32, so on device it trades
+the memory traffic that full-integer INT8 saves. ADR 0001 §3 originally rejected it
+for exactly that reason — a judgement made before the alternative was known to be
+worthless. G5, not G4, is now the gate that decides whether this ships, and the
+ADR's own latency arithmetic (1.2–2.9 s CPU at 224 px for *full* int8) suggests
+the margin is thin. **G4 passing here is not evidence that G5 passes.**
+
+**Reproducibility note.** The same commit produced int8 artifacts with different
+bytes across builds (`97a8ebe9…` then `fec8fc14…`, same size, same accuracy class),
+and the float-I/O control likewise (`d91e6807…`, `76ef1f9d…`). The conversion is not
+bit-reproducible. Before a region pack becomes the versioned unit, the ONNX export
+and the converter both need a determinism check, or packs must be identified by
+score and not by hash alone.
 
 ## 4. Findings
 
@@ -233,17 +282,27 @@ go/no-go, the set needs to be ~400–600 photos, or the decision must be made on
 the paired deltas rather than the absolute level. Stating this now rather than
 discovering it at the decision meeting.
 
+**F7 — post-training full-integer INT8 destroys this ViT; weight-only quantisation
+does not.** 78.91% fp32 → 0.68% full-integer (−78.23 points) → 77.55% with int8
+weights and fp32 activations (−1.36 points), all on the same 147 photos and the
+same graph (§3c, §3d). The failure is in the activations, not the weights, and it
+is not an input-boundary artefact (the float-I/O control is equally bad). This is
+the LayerNorm/attention dynamic-range problem ADR 0001 §5 predicted; the
+consequence is that the quantisation mode is decided by measurement, not by the
+ADR's original preference, and that **G5 latency — not accuracy — is the remaining
+risk on the shipping artifact.**
+
 ## 5. What is next, in order
 
 1. ~~Owner sign-off on dropping 384 → 224~~ — approved 2026-11-11; ADR 0001 amended.
 2. ~~TFLite build in a Linux container~~ — done 2026-11-12 via GitHub Actions.
-   G7 passes at 88.6 MB; **G4 fails at −78.23 points** (§3c). The conversion
-   toolchain itself is now reproducible; the quantisation is what has to change.
-3. **Quantisation ladder, before any latency work** — G5 is unmeasurable on a model
-   that identifies nothing. ADR 0001 §3 order: selective/per-channel INT8 with
-   LayerNorm and softmax in fp32; then float16 weights + int8 activations; then
-   float16 throughout (~172 MB, fails G7, owner decision). Re-score each with
-   `ml/export/eval_tflite.py`; the gate is unchanged at ≤ 2.0 points.
+   Full-integer INT8 **fails G4 at −78.23 points** (§3c); the conversion toolchain
+   is fine, the quantisation is not.
+3. ~~Quantisation ladder~~ — done 2026-11-12 (§3d). Dynamic-range INT8 (int8
+   weights, fp32 activations, 88.1 MB) costs **−1.36 points** and clears G4 + G7;
+   float16 is numerically free but 172.5 MB and breaches G7; full-integer is
+   unusable. **ADR 0001 §3 needs amending**: it rejected dynamic range before the
+   alternative was known to be worthless.
 4. **Training-data pipeline for the head (G2)** — fetch 20–50 iNat observations
    per candidate species with a *train* split disjoint by observation id from this
    eval set, then logistic regression on frozen features. Note §8: this route
